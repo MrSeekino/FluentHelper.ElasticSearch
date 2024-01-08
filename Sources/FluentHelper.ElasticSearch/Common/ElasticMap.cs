@@ -1,6 +1,8 @@
 ﻿using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Interfaces;
 using Nest;
+using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace FluentHelper.ElasticSearch.Common

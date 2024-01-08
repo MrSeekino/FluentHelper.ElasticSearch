@@ -1,4 +1,6 @@
 ﻿using FluentHelper.ElasticSearch.Interfaces;
+using System;
+using System.Collections.Generic;
 
 namespace FluentHelper.ElasticSearch.IndexCalculators
 {

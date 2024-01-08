@@ -1,5 +1,7 @@
 ﻿using FluentHelper.ElasticSearch.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Linq;
 
 namespace FluentHelper.ElasticSearch.Common
 {

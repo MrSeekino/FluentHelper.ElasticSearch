@@ -1,4 +1,6 @@
-﻿namespace FluentHelper.ElasticSearch.Interfaces
+﻿using System.Collections.Generic;
+
+namespace FluentHelper.ElasticSearch.Interfaces
 {
     public interface IElasticIndexCalculator<TEntity>
     {

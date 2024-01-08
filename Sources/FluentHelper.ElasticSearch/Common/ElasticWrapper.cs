@@ -2,8 +2,11 @@
 using FluentHelper.ElasticSearch.Interfaces;
 using Nest;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Dynamic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("FluentHelper.ElasticSearch.Tests")]
@@ -16,13 +19,13 @@ namespace FluentHelper.ElasticSearch.Common
 
         internal Dictionary<Type, IElasticMap> EntityMappingList { get; set; } = new Dictionary<Type, IElasticMap>();
 
-        public ElasticWrapper(IElasticConfig elasticConfig, IEnumerable<IElasticMap> mappings) 
+        public ElasticWrapper(IElasticConfig elasticConfig, IEnumerable<IElasticMap> mappings)
         {
             Client = null;
 
             ElasticConfig = elasticConfig;
-            
-            foreach (var elasticMap in mappings) 
+
+            foreach (var elasticMap in mappings)
             {
                 elasticMap.Map();
                 elasticMap.Verify();

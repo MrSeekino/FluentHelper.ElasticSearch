@@ -1,5 +1,7 @@
 ﻿using FluentHelper.ElasticSearch.Common;
 using Nest;
+using System;
+using System.Collections.Generic;
 
 namespace FluentHelper.ElasticSearch.Interfaces
 {

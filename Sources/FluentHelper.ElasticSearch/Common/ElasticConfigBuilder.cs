@@ -1,4 +1,6 @@
 ﻿using FluentHelper.ElasticSearch.Interfaces;
+using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace FluentHelper.ElasticSearch.Common
