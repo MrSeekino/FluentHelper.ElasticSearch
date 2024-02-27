@@ -1,6 +1,7 @@
 ﻿using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Tests.Support;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace FluentHelper.ElasticSearch.Tests
 {
@@ -22,7 +23,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var basicIndexCalculator = new BasicIndexCalculator<TestEntity>();
 
             string entityIndex = basicIndexCalculator.CalcEntityIndex(testEntity);
-            Assert.AreEqual(string.Empty, entityIndex);
+            ClassicAssert.AreEqual(string.Empty, entityIndex);
         }
 
         [Test]
@@ -31,8 +32,8 @@ namespace FluentHelper.ElasticSearch.Tests
             var basicIndexCalculator = new BasicIndexCalculator<TestEntity>(true);
 
             var queryIndexes = basicIndexCalculator.CalcQueryIndex(null);
-            Assert.IsNotNull(queryIndexes);
-            Assert.AreEqual(0, queryIndexes.Count());
+            ClassicAssert.IsNotNull(queryIndexes);
+            ClassicAssert.AreEqual(0, queryIndexes.Count());
         }
 
         [Test]
@@ -41,9 +42,9 @@ namespace FluentHelper.ElasticSearch.Tests
             var basicIndexCalculator = new BasicIndexCalculator<TestEntity>(false);
 
             var queryIndexes = basicIndexCalculator.CalcQueryIndex(null);
-            Assert.IsNotNull(queryIndexes);
-            Assert.AreEqual(1, queryIndexes.Count());
-            Assert.AreEqual("*", queryIndexes.First());
+            ClassicAssert.IsNotNull(queryIndexes);
+            ClassicAssert.AreEqual(1, queryIndexes.Count());
+            ClassicAssert.AreEqual("*", queryIndexes.First());
         }
     }
 }

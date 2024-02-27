@@ -1,6 +1,7 @@
 ﻿using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Tests.Support;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace FluentHelper.ElasticSearch.Tests
 {
@@ -39,7 +40,7 @@ namespace FluentHelper.ElasticSearch.Tests
             string expectedEntityIndex = $"{testEntity.CreationTime:yyyy.MM.dd}";
 
             string entityIndex = _customIndexCalculator.CalcEntityIndex(testEntity);
-            Assert.AreEqual(expectedEntityIndex, entityIndex);
+            ClassicAssert.AreEqual(expectedEntityIndex, entityIndex);
         }
 
         [Test]
@@ -48,20 +49,20 @@ namespace FluentHelper.ElasticSearch.Tests
             DateTime[] filter = new DateTime[2] { new DateTime(2023, 12, 1), new DateTime(2024, 1, 1) };
 
             var queryIndexes = _customIndexCalculator.CalcQueryIndex(filter);
-            Assert.IsNotNull(queryIndexes);
-            Assert.AreEqual(2, queryIndexes.Count());
+            ClassicAssert.IsNotNull(queryIndexes);
+            ClassicAssert.AreEqual(2, queryIndexes.Count());
 
-            Assert.True(queryIndexes.Contains("2023.12.01"));
-            Assert.True(queryIndexes.Contains("2024.01.01"));
+            ClassicAssert.True(queryIndexes.Contains("2023.12.01"));
+            ClassicAssert.True(queryIndexes.Contains("2024.01.01"));
         }
 
         [Test]
         public void CalcQueryIndex_When_FilterIsNull_Returns_Star()
         {
             var queryIndexes = _customIndexCalculator.CalcQueryIndex(null);
-            Assert.IsNotNull(queryIndexes);
-            Assert.AreEqual(1, queryIndexes.Count());
-            Assert.AreEqual("*", queryIndexes.First());
+            ClassicAssert.IsNotNull(queryIndexes);
+            ClassicAssert.AreEqual(1, queryIndexes.Count());
+            ClassicAssert.AreEqual("*", queryIndexes.First());
         }
 
         [Test]
