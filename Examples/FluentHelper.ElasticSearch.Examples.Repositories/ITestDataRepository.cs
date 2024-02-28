@@ -11,5 +11,15 @@ namespace FluentHelper.ElasticSearch.Examples.Repositories
         Task Add(TestData data);
 
         Task Delete(TestData data);
+
+        Task<long> Count();
+
+        Task Update(TestData data);
+
+        Task BulkAdd(IEnumerable<TestData> dataList);
+
+        Task<TestData?> GetByIdWithoutCreationTimeAndActive(Guid id);
+
+        Task<IEnumerable<TestData>> GetAllSortedByCreationDateDesc();
     }
 }

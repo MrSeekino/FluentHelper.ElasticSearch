@@ -1,7 +1,7 @@
-﻿using FluentHelper.ElasticSearch.Common;
+﻿using Elastic.Clients.Elasticsearch;
 using FluentHelper.ElasticSearch.Examples.Models;
 using FluentHelper.ElasticSearch.Interfaces;
-using Nest;
+using FluentHelper.ElasticSearch.QueryParameters;
 
 namespace FluentHelper.ElasticSearch.Examples.Repositories
 {
@@ -29,17 +29,56 @@ namespace FluentHelper.ElasticSearch.Examples.Repositories
             return await _elasticWrapper.QueryAsync<TestData>(null, null);
         }
 
+        public async Task<IEnumerable<TestData>> GetAllSortedByCreationDateDesc()
+        {
+            var qBuilder = ElasticQueryParametersBuilder<TestData>.Create()
+                                .Sort(x => x.CreationDate, SortOrder.Desc);
+
+            var qParams = qBuilder.Build();
+            return await _elasticWrapper.QueryAsync(null, qParams);
+        }
+
         public async Task<TestData?> GetById(Guid id)
         {
-            QueryContainer qContainer = new QueryContainer();
-            var qDescriptor = new QueryContainerDescriptor<TestData>();
+            var qBuilder = ElasticQueryParametersBuilder<TestData>.Create()
+                               .Query(x => x.Match(x => x.Field(f => f.Id)).SimpleQueryString(c => c.Query(id.ToString())))
+                               .Skip(0)
+                               .Take(1);
 
-            qContainer = qContainer && qDescriptor.Match(x => x.Field(f => f.Id).Query(id.ToString()));
-
-            var qParams = new ElasticQueryParameters<TestData>(qContainer);
-
+            var qParams = qBuilder.Build();
             var dataList = await _elasticWrapper.QueryAsync(null, qParams);
+
             return dataList.SingleOrDefault();
+        }
+
+        public async Task<TestData?> GetByIdWithoutCreationTimeAndActive(Guid id)
+        {
+            var qBuilder = ElasticQueryParametersBuilder<TestData>.Create()
+                .Query(q => q.Match(x => x.Field(f => f.Id)).SimpleQueryString(c => c.Query(id.ToString())))
+                .Skip(0)
+                .Take(1)
+                .Exclude(x => x.CreationDate)
+                .Exclude(x => x.Active);
+
+            var qParams = qBuilder.Build();
+            var dataList = await _elasticWrapper.QueryAsync(null, qParams);
+
+            return dataList.SingleOrDefault();
+        }
+
+        public async Task<long> Count()
+        {
+            return await _elasticWrapper.CountAsync<TestData>(null, null);
+        }
+
+        public async Task Update(TestData data)
+        {
+            await _elasticWrapper.AddOrUpdateAsync(data, x => x.Update(f => f.Active).Update(f => f.Name), 1);
+        }
+
+        public async Task BulkAdd(IEnumerable<TestData> dataList)
+        {
+            await _elasticWrapper.BulkAddAsync(dataList);
         }
     }
 }
