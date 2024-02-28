@@ -406,7 +406,7 @@ namespace FluentHelper.ElasticSearch.Common
             var indexesToQuery = elasticMap.IndexCalculator!.CalcQueryIndex(baseObjectFilter).Select(x => x.ToLower());
 
             string indexNames = indexesToQuery.Any() ? $"{fixedIndexName}-{string.Join($",{fixedIndexName}-".ToLower(), indexesToQuery)}" : fixedIndexName;
-            indexNames.ThrowIfIndexInvalid(false);
+            indexNames.ThrowIfIndexInvalid(true);
             return indexNames;
         }
 
