@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq.Expressions;
 
-namespace FluentHelper.ElasticSearch.Common
+namespace FluentHelper.ElasticSearch.QueryParameters
 {
     internal sealed class ElasticFieldUpdater<TEntity> : IElasticFieldUpdater<TEntity> where TEntity : class
     {

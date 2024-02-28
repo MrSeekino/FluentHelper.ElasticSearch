@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Elastic.Transport;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -6,14 +7,14 @@ namespace FluentHelper.ElasticSearch.Interfaces
 {
     public interface IElasticConfig
     {
-        string ConnectionUrl { get; }
+        Uri[] ConnectionsPool { get; }
         string? CertificateFingerprint { get; }
         (string Username, string Password)? BasicAuthentication { get; }
 
-        bool EnableApiVersioningHeader { get; }
+        bool EnableDebug { get; }
+        Action<ApiCallDetails>? RequestCompleted { get; }
 
         TimeSpan? RequestTimeout { get; }
-        bool DebugQuery { get; }
         int BulkInsertChunkSize { get; }
 
         string IndexPrefix { get; }

@@ -1,73 +1,94 @@
-﻿using FluentHelper.ElasticSearch.Interfaces;
+﻿using Elastic.Transport;
+using FluentHelper.ElasticSearch.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace FluentHelper.ElasticSearch.Common
 {
     public sealed class ElasticConfigBuilder
     {
-        internal string ConnectionUrl { get; private set; } = string.Empty;
-        internal string CertificateFingerprint { get; private set; } = string.Empty;
-        internal (string Username, string Password)? BasicAuthentication { get; private set; }
+        private List<Uri> _connectionPool = [];
+        private string _certificateFingerprint = string.Empty;
+        private (string Username, string Password)? _basicAuthentication;
 
-        internal bool EnableApiVersioningHeader { get; private set; } = false;
+        private bool _enableDebug = false;
+        private Action<ApiCallDetails>? _requestCompleted;
 
-        internal TimeSpan? RequestTimeout { get; private set; }
-        internal bool DebugQuery { get; private set; } = false;
-        internal int BulkInsertChunkSize { get; private set; } = 50;
+        private TimeSpan? _requestTimeout;
+        private int _bulkInsertChunkSize = 50;
 
-        internal string IndexPrefix { get; private set; } = string.Empty;
-        internal string IndexSuffix { get; private set; } = string.Empty;
+        private string _indexPrefix = string.Empty;
+        private string _indexSuffix = string.Empty;
 
-        internal Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, string?[]>? LogAction { get; private set; }
+        private Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, string?[]>? _logAction;
 
-        internal List<Assembly> MappingAssemblies { get; private set; } = new List<Assembly>();
+        private readonly List<Assembly> _mappingAssemblies = [];
 
-        public ElasticConfigBuilder WithConnectionUrl(string connectionUrl)
+        public ElasticConfigBuilder WithConnectionUri(string connectionUri)
+            => WithConnectionUri(new Uri(connectionUri));
+
+        public ElasticConfigBuilder WithConnectionsPool(IEnumerable<string> connectionPool)
+            => WithConnectionsPool(connectionPool.Select(c => new Uri(c)));
+
+        public ElasticConfigBuilder WithConnectionUri(Uri connectionUri)
         {
-            ConnectionUrl = connectionUrl;
+            _connectionPool.Add(connectionUri);
+            return this;
+        }
+
+        public ElasticConfigBuilder WithConnectionsPool(IEnumerable<Uri> connectionPool)
+        {
+            _connectionPool = connectionPool.ToList();
             return this;
         }
 
         public ElasticConfigBuilder WithAuthorization(string? certificateFingerprint = null, (string username, string password)? basicAuthentication = null)
         {
             if (!string.IsNullOrEmpty(certificateFingerprint))
-                CertificateFingerprint = certificateFingerprint;
+                _certificateFingerprint = certificateFingerprint;
 
             if (basicAuthentication != null)
-                BasicAuthentication = basicAuthentication;
+                _basicAuthentication = basicAuthentication;
 
             return this;
         }
 
         public ElasticConfigBuilder WithRequestTimeout(TimeSpan timeoutValue)
         {
-            RequestTimeout = timeoutValue;
+            _requestTimeout = timeoutValue;
             return this;
         }
 
-        public ElasticConfigBuilder WithDebugQuery(bool debugQuery)
+        public ElasticConfigBuilder WithDebugEnabled()
         {
-            DebugQuery = debugQuery;
+            _enableDebug = true;
+            return this;
+        }
+
+        public ElasticConfigBuilder WithOnRequestCompleted(Action<ApiCallDetails> requestCompleted)
+        {
+            _enableDebug = true;
+            _requestCompleted = requestCompleted;
             return this;
         }
 
         public ElasticConfigBuilder WithBulkInsertChunkSize(int chunkSize)
         {
-            BulkInsertChunkSize = chunkSize;
+            _bulkInsertChunkSize = chunkSize;
             return this;
         }
 
         public ElasticConfigBuilder WithIndexPrefix(string indexPrefix)
         {
-            IndexPrefix = indexPrefix.ToLower();
+            _indexPrefix = indexPrefix.ToLower();
             return this;
         }
 
         public ElasticConfigBuilder WithIndexSuffix(string indexSuffix)
         {
-            IndexSuffix = indexSuffix.ToLower();
+            _indexSuffix = indexSuffix.ToLower();
             return this;
         }
 
@@ -75,19 +96,13 @@ namespace FluentHelper.ElasticSearch.Common
         {
             var mappingAssembly = Assembly.GetAssembly(typeof(T)) ?? throw new ArgumentException($"Could not find assembly with {typeof(T).Name}");
 
-            MappingAssemblies.Add(mappingAssembly!);
+            _mappingAssemblies.Add(mappingAssembly!);
             return this;
         }
 
         public ElasticConfigBuilder WithLogAction(Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, string?[]> logAction)
         {
-            LogAction = logAction;
-            return this;
-        }
-
-        public ElasticConfigBuilder WithApiVersioningHeader(bool enableApiVersioningHeader = true)
-        {
-            EnableApiVersioningHeader = enableApiVersioningHeader;
+            _logAction = logAction;
             return this;
         }
 
@@ -95,17 +110,17 @@ namespace FluentHelper.ElasticSearch.Common
         {
             return new ElasticConfig
             {
-                ConnectionUrl = ConnectionUrl,
-                CertificateFingerprint = CertificateFingerprint,
-                BasicAuthentication = BasicAuthentication,
-                EnableApiVersioningHeader = EnableApiVersioningHeader,
-                RequestTimeout = RequestTimeout,
-                DebugQuery = DebugQuery,
-                BulkInsertChunkSize = BulkInsertChunkSize,
-                IndexPrefix = IndexPrefix,
-                IndexSuffix = IndexSuffix,
-                LogAction = LogAction,
-                MappingAssemblies = MappingAssemblies
+                ConnectionsPool = _connectionPool.ToArray(),
+                CertificateFingerprint = _certificateFingerprint,
+                BasicAuthentication = _basicAuthentication,
+                EnableDebug = _enableDebug,
+                RequestCompleted = _requestCompleted,
+                RequestTimeout = _requestTimeout,
+                BulkInsertChunkSize = _bulkInsertChunkSize,
+                IndexPrefix = _indexPrefix,
+                IndexSuffix = _indexSuffix,
+                LogAction = _logAction,
+                MappingAssemblies = _mappingAssemblies
             };
         }
     }

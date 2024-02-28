@@ -1,4 +1,4 @@
-﻿using Nest;
+﻿using Elastic.Clients.Elasticsearch;
 using System;
 
 namespace FluentHelper.ElasticSearch.Interfaces
@@ -9,7 +9,7 @@ namespace FluentHelper.ElasticSearch.Interfaces
 
         void Map();
 
-        void ApplySpecialMap(ConnectionSettings esSettings);
+        void ApplySpecialMap(ElasticsearchClientSettings esSettings);
 
         void Verify();
     }

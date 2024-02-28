@@ -1,10 +1,11 @@
-﻿using Elasticsearch.Net;
+﻿using Elastic.Clients.Elasticsearch;
+using Elastic.Transport;
+using Elastic.Transport.Products.Elasticsearch;
 using FluentHelper.ElasticSearch.Interfaces;
-using Nest;
+using FluentHelper.ElasticSearch.QueryParameters;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Dynamic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -15,7 +16,7 @@ namespace FluentHelper.ElasticSearch.Common
 {
     internal sealed class ElasticWrapper : IElasticWrapper
     {
-        private IElasticClient? _client;
+        private ElasticsearchClient? _client;
         private readonly IElasticConfig _elasticConfig;
         private readonly Dictionary<Type, IElasticMap> _entityMappingList;
 
@@ -24,7 +25,7 @@ namespace FluentHelper.ElasticSearch.Common
             _client = null;
             _elasticConfig = elasticConfig;
 
-            _entityMappingList = new Dictionary<Type, IElasticMap>();
+            _entityMappingList = [];
             foreach (var elasticMap in mappings)
             {
                 elasticMap.Map();
@@ -38,33 +39,34 @@ namespace FluentHelper.ElasticSearch.Common
         {
             _client = null;
 
-            var esSettings = new ConnectionSettings(new Uri(_elasticConfig.ConnectionUrl!)).DisableDirectStreaming(_elasticConfig.DebugQuery);
+            var staticNodePool = new StaticNodePool(_elasticConfig.ConnectionsPool);
+            var esSettings = new ElasticsearchClientSettings(staticNodePool);
 
-            if (_elasticConfig.EnableApiVersioningHeader)
-                esSettings.EnableApiVersioningHeader();
+            if (_elasticConfig.EnableDebug)
+                esSettings.EnableDebugMode(_elasticConfig.RequestCompleted!);
 
             if (!string.IsNullOrWhiteSpace(_elasticConfig.CertificateFingerprint))
                 esSettings.CertificateFingerprint(_elasticConfig.CertificateFingerprint);
 
             if (_elasticConfig.BasicAuthentication != null)
-                esSettings.BasicAuthentication(_elasticConfig.BasicAuthentication.Value.Username, _elasticConfig.BasicAuthentication.Value.Password);
+                esSettings.Authentication(new BasicAuthentication(_elasticConfig.BasicAuthentication.Value.Username, _elasticConfig.BasicAuthentication.Value.Password));
 
             if (_elasticConfig.RequestTimeout.HasValue)
                 esSettings.RequestTimeout(_elasticConfig.RequestTimeout.Value);
 
             SetMappings(esSettings);
-            _client = new ElasticClient(esSettings);
+            _client = new ElasticsearchClient(esSettings);
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Trace, null, "ElasticClient created", Array.Empty<string?>());
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Trace, null, "ElasticClient created", []);
         }
 
-        internal void SetMappings(ConnectionSettings esSettings)
+        internal void SetMappings(ElasticsearchClientSettings esSettings)
         {
             foreach (var m in _entityMappingList)
                 m.Value.ApplySpecialMap(esSettings);
         }
 
-        public IElasticClient GetContext()
+        public ElasticsearchClient GetContext()
         {
             if (_client == null)
                 CreateDbContext();
@@ -72,7 +74,7 @@ namespace FluentHelper.ElasticSearch.Common
             return _client!;
         }
 
-        public IElasticClient CreateNewContext()
+        public ElasticsearchClient CreateNewContext()
         {
             Dispose();
             return GetContext();
@@ -86,10 +88,10 @@ namespace FluentHelper.ElasticSearch.Common
             var addResponse = GetContext().Index(inputData, x => x.Index(indexName));
             AfterQueryResponse(addResponse);
 
-            if (addResponse == null || !addResponse.IsValid || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
+            if (addResponse == null || !addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
                 throw new InvalidOperationException("Could not add data", new Exception(JsonConvert.SerializeObject(addResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", new string?[] { inputData?.ToString(), indexName });
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData?.ToString(), indexName]);
         }
 
         public async Task AddAsync<TEntity>(TEntity inputData) where TEntity : class
@@ -100,10 +102,10 @@ namespace FluentHelper.ElasticSearch.Common
             var addResponse = await GetContext().IndexAsync(inputData, x => x.Index(indexName)).ConfigureAwait(false);
             AfterQueryResponse(addResponse);
 
-            if (addResponse == null || !addResponse.IsValid || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
+            if (addResponse == null || !addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
                 throw new InvalidOperationException("Could not add data", new Exception(JsonConvert.SerializeObject(addResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", new string?[] { inputData?.ToString(), indexName });
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData?.ToString(), indexName]);
         }
 
         public int BulkAdd<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
@@ -129,26 +131,26 @@ namespace FluentHelper.ElasticSearch.Common
                     while (indexedElements < groupedInputData.InputList.Count)
                     {
                         var inputListToAdd = groupedInputData.InputList.Skip(indexedElements).Take(_elasticConfig.BulkInsertChunkSize).ToList();
-                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Indexing {addNumber} elements into {indexName}. {bulkProgress}", new string?[] { inputListToAdd.Count.ToString(), groupedInputData.IndexName, $"{indexedElements}/{groupedInputData.InputList}" });
+                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Indexing {addNumber} elements into {indexName}. {bulkProgress}", [inputListToAdd.Count.ToString(), groupedInputData.IndexName, $"{indexedElements}/{groupedInputData.InputList}"]);
 
                         var bulkResponse = GetContext().Bulk(b => b.Index(groupedInputData.IndexName).IndexMany(inputListToAdd));
                         AfterQueryResponse(bulkResponse);
 
-                        if (bulkResponse == null || !bulkResponse.IsValid || bulkResponse.Errors)
+                        if (bulkResponse == null || !bulkResponse.IsValidResponse || bulkResponse.Errors)
                             throw new InvalidOperationException("Could not bulkadd data", new Exception(JsonConvert.SerializeObject(bulkResponse)));
 
-                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Added {addNumber} to {indexName}", new string?[] { inputListToAdd.Count.ToString(), groupedInputData.IndexName });
-                        indexedElements += inputListToAdd.Count();
+                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Added {addNumber} to {indexName}", [inputListToAdd.Count.ToString(), groupedInputData.IndexName]);
+                        indexedElements += inputListToAdd.Count;
                         totalIndexedElements += indexedElements;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, ex, "Could not BulkAdd some data on index {indexName}", new string?[] { groupedInputData.IndexName });
+                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, ex, "Could not BulkAdd some data on index {indexName}", [groupedInputData.IndexName]);
                 }
                 finally
                 {
-                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "BulkAdded {bulkProgress} to {indexName}", new string?[] { $"{indexedElements}/{groupedInputData.InputList.Count}", groupedInputData.IndexName });
+                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "BulkAdded {bulkProgress} to {indexName}", [$"{indexedElements}/{groupedInputData.InputList.Count}", groupedInputData.IndexName]);
                 }
             }
 
@@ -178,26 +180,26 @@ namespace FluentHelper.ElasticSearch.Common
                     while (indexedElements < groupedInputData.InputList.Count)
                     {
                         var inputListToAdd = groupedInputData.InputList.Skip(indexedElements).Take(_elasticConfig.BulkInsertChunkSize).ToList();
-                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Indexing {addNumber} elements into {indexName}. {bulkProgress}", new string?[] { inputListToAdd.Count.ToString(), groupedInputData.IndexName, $"{indexedElements}/{groupedInputData.InputList}" });
+                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Indexing {addNumber} elements into {indexName}. {bulkProgress}", [inputListToAdd.Count.ToString(), groupedInputData.IndexName, $"{indexedElements}/{groupedInputData.InputList}"]);
 
                         var bulkResponse = await GetContext().BulkAsync(b => b.Index(groupedInputData.IndexName).IndexMany(inputListToAdd)).ConfigureAwait(false);
                         AfterQueryResponse(bulkResponse);
 
-                        if (bulkResponse == null || !bulkResponse.IsValid || bulkResponse.Errors)
+                        if (bulkResponse == null || !bulkResponse.IsValidResponse || bulkResponse.Errors)
                             throw new InvalidOperationException("Could not bulkadd data", new Exception(JsonConvert.SerializeObject(bulkResponse)));
 
-                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Added {addNumber} to {indexName}", new string?[] { inputListToAdd.Count.ToString(), groupedInputData.IndexName });
-                        indexedElements += inputListToAdd.Count();
+                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Added {addNumber} to {indexName}", [inputListToAdd.Count.ToString(), groupedInputData.IndexName]);
+                        indexedElements += inputListToAdd.Count;
                         totalIndexedElements += indexedElements;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, ex, "Could not BulkAdd some data on index {indexName}", new string?[] { groupedInputData.IndexName });
+                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, ex, "Could not BulkAdd some data on index {indexName}", [groupedInputData.IndexName]);
                 }
                 finally
                 {
-                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "BulkAdded {bulkProgress} to {indexName}", new string?[] { $"{indexedElements}/{groupedInputData.InputList.Count}", groupedInputData.IndexName });
+                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "BulkAdded {bulkProgress} to {indexName}", [$"{indexedElements}/{groupedInputData.InputList.Count}", groupedInputData.IndexName]);
                 }
             }
 
@@ -210,16 +212,16 @@ namespace FluentHelper.ElasticSearch.Common
             string indexName = GetIndexName(mapInstance, inputData);
 
             IElasticFieldUpdater<TEntity>? elasticFieldUpdater = fieldUpdaterExpr != null ? fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName)) : null;
-            var updateObj = GetExpandoObject(inputData, elasticFieldUpdater);
+            var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
 
-            var inputId = GetFieldValue(inputData, mapInstance.IdPropertyName);
-            var updateResponse = GetContext().Update<TEntity, ExpandoObject>(inputId!.ToString(), x => x.Index(indexName).Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts));
+            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
+            var updateResponse = GetContext().Update<TEntity, ExpandoObject>(indexName, inputId!.ToString()!, x => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts));
             AfterQueryResponse(updateResponse);
 
-            if (updateResponse == null || !updateResponse.IsValid || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.Noop))
+            if (updateResponse == null || !updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
                 throw new InvalidOperationException("Could not update data", new Exception(JsonConvert.SerializeObject(updateResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", new string?[] { inputData?.ToString(), indexName });
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData?.ToString(), indexName]);
         }
 
         public async Task AddOrUpdateAsync<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts = 0) where TEntity : class
@@ -228,119 +230,121 @@ namespace FluentHelper.ElasticSearch.Common
             string indexName = GetIndexName(mapInstance, inputData);
 
             IElasticFieldUpdater<TEntity>? elasticFieldUpdater = fieldUpdaterExpr != null ? fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName)) : null;
-            var updateObj = GetExpandoObject(inputData, elasticFieldUpdater);
+            var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
 
-            var inputId = GetFieldValue(inputData, mapInstance.IdPropertyName);
-            var updateResponse = await GetContext().UpdateAsync<TEntity, ExpandoObject>(inputId!.ToString(), x => x.Index(indexName).Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts)).ConfigureAwait(false); ;
+            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
+            var updateResponse = await GetContext().UpdateAsync<TEntity, ExpandoObject>(indexName, inputId!.ToString()!, x => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts)).ConfigureAwait(false);
             AfterQueryResponse(updateResponse);
 
-            if (updateResponse == null || !updateResponse.IsValid || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.Noop))
+            if (updateResponse == null || !updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
                 throw new InvalidOperationException("Could not update data", new Exception(JsonConvert.SerializeObject(updateResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", new string?[] { inputData?.ToString(), indexName });
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData?.ToString(), indexName]);
         }
 
-        public IEnumerable<TEntity> Query<TEntity>(object? baseObjectFilter, ElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        public IEnumerable<TEntity> Query<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
 
             string indexNames = GetIndexNamesForQueries(mapInstance, baseObjectFilter);
 
-            var searchDescriptor = new SearchDescriptor<TEntity>();
+            var searchDescriptor = new SearchRequestDescriptor<TEntity>();
             searchDescriptor.Index(indexNames);
             searchDescriptor.IgnoreUnavailable();
 
             if (queryParameters != null)
             {
-                searchDescriptor.Query(q => queryParameters.Query);
+                if (queryParameters.QueryDescriptor != null)
+                    searchDescriptor.Query(queryParameters.QueryDescriptor);
 
-                if (queryParameters.SourceFilter != null)
-                    searchDescriptor.Source(s => queryParameters.SourceFilter!);
+                if (queryParameters.SourceConfig != null)
+                    searchDescriptor.Source(queryParameters.SourceConfig);
 
-                if (queryParameters.Sort != null)
-                    searchDescriptor.Sort(s => queryParameters.Sort!);
+                if (queryParameters.SortOptionsDescriptor != null)
+                    searchDescriptor.Sort(queryParameters.SortOptionsDescriptor);
 
-                searchDescriptor.Skip(queryParameters.Skip).Take(queryParameters.Take);
+                searchDescriptor.From(queryParameters.Skip).Size(queryParameters.Take);
             }
 
-            var queryResponse = GetContext().Search<TEntity>(s => searchDescriptor);
+            var queryResponse = GetContext().Search(searchDescriptor);
             AfterQueryResponse(queryResponse);
 
-            if (queryResponse == null || !queryResponse.IsValid)
+            if (queryResponse == null || !queryResponse.IsValidResponse)
                 throw new InvalidOperationException("Could not get data", new Exception(JsonConvert.SerializeObject(queryResponse)));
 
             return queryResponse.Documents.AsEnumerable();
         }
 
-        public async Task<IEnumerable<TEntity>> QueryAsync<TEntity>(object? baseObjectFilter, ElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        public async Task<IEnumerable<TEntity>> QueryAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
 
             string indexNames = GetIndexNamesForQueries(mapInstance, baseObjectFilter);
 
-            var searchDescriptor = new SearchDescriptor<TEntity>();
+            var searchDescriptor = new SearchRequestDescriptor<TEntity>();
             searchDescriptor.Index(indexNames);
             searchDescriptor.IgnoreUnavailable();
 
             if (queryParameters != null)
             {
-                searchDescriptor.Query(q => queryParameters.Query);
+                if (queryParameters.QueryDescriptor != null)
+                    searchDescriptor.Query(queryParameters.QueryDescriptor);
 
-                if (queryParameters.SourceFilter != null)
-                    searchDescriptor.Source(s => queryParameters.SourceFilter!);
+                if (queryParameters.SourceConfig != null)
+                    searchDescriptor.Source(queryParameters.SourceConfig);
 
-                if (queryParameters.Sort != null)
-                    searchDescriptor.Sort(s => queryParameters.Sort!);
+                if (queryParameters.SortOptionsDescriptor != null)
+                    searchDescriptor.Sort(queryParameters.SortOptionsDescriptor);
 
-                searchDescriptor.Skip(queryParameters.Skip).Take(queryParameters.Take);
+                searchDescriptor.From(queryParameters.Skip).Size(queryParameters.Take);
             }
 
-            var queryResponse = await GetContext().SearchAsync<TEntity>(s => searchDescriptor).ConfigureAwait(false);
+            var queryResponse = await GetContext().SearchAsync(searchDescriptor).ConfigureAwait(false);
             AfterQueryResponse(queryResponse);
 
-            if (queryResponse == null || !queryResponse.IsValid)
+            if (queryResponse == null || !queryResponse.IsValidResponse)
                 throw new InvalidOperationException("Could not get data", new Exception(JsonConvert.SerializeObject(queryResponse)));
 
             return queryResponse.Documents.AsEnumerable();
         }
 
-        public long Count<TEntity>(object? baseObjectFilter, ElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        public long Count<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexNames = GetIndexNamesForQueries(mapInstance, baseObjectFilter);
 
-            var countDescriptor = new CountDescriptor<TEntity>();
-            countDescriptor.Index(indexNames);
+            var countDescriptor = new CountRequestDescriptor<TEntity>();
+            countDescriptor.Indices(indexNames);
             countDescriptor.IgnoreUnavailable();
 
-            if (queryParameters != null)
-                countDescriptor.Query(q => queryParameters.Query);
+            if (queryParameters != null && queryParameters.QueryDescriptor != null)
+                countDescriptor.Query(queryParameters.QueryDescriptor);
 
-            var countResponse = GetContext().Count<TEntity>(c => countDescriptor);
+            var countResponse = GetContext().Count(countDescriptor);
             AfterQueryResponse(countResponse);
 
-            if (countResponse == null || !countResponse.IsValid)
+            if (countResponse == null || !countResponse.IsValidResponse)
                 throw new InvalidOperationException("Could not count data", new Exception(JsonConvert.SerializeObject(countResponse)));
 
             return countResponse.Count;
         }
 
-        public async Task<long> CountAsync<TEntity>(object? baseObjectFilter, ElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        public async Task<long> CountAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexNames = GetIndexNamesForQueries(mapInstance, baseObjectFilter);
 
-            var countDescriptor = new CountDescriptor<TEntity>();
-            countDescriptor.Index(indexNames);
+            var countDescriptor = new CountRequestDescriptor<TEntity>();
+            countDescriptor.Indices(indexNames);
             countDescriptor.IgnoreUnavailable();
 
-            if (queryParameters != null)
-                countDescriptor.Query(q => queryParameters.Query);
+            if (queryParameters != null && queryParameters.QueryDescriptor != null)
+                countDescriptor.Query(queryParameters.QueryDescriptor);
 
-            var countResponse = await GetContext().CountAsync<TEntity>(c => countDescriptor).ConfigureAwait(false);
+            var countResponse = await GetContext().CountAsync(countDescriptor).ConfigureAwait(false);
             AfterQueryResponse(countResponse);
 
-            if (countResponse == null || !countResponse.IsValid)
+            if (countResponse == null || !countResponse.IsValidResponse)
                 throw new InvalidOperationException("Could not count data", new Exception(JsonConvert.SerializeObject(countResponse)));
 
             return countResponse.Count;
@@ -350,28 +354,30 @@ namespace FluentHelper.ElasticSearch.Common
         {
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = GetIndexName(mapInstance, inputData);
+            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
-            var deleteResponse = GetContext().Delete<TEntity>(inputData, x => x.Index(indexName));
+            var deleteResponse = GetContext().Delete<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True));
             AfterQueryResponse(deleteResponse);
 
-            if (deleteResponse == null || !deleteResponse.IsValid || deleteResponse.Result != Result.Deleted)
+            if (deleteResponse == null || !deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
                 throw new InvalidOperationException("Could not delete data", new Exception(JsonConvert.SerializeObject(deleteResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", new string?[] { inputData?.ToString(), indexName });
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData?.ToString(), indexName]);
         }
 
         public async Task DeleteAsync<TEntity>(TEntity inputData) where TEntity : class
         {
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = GetIndexName(mapInstance, inputData);
+            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
-            var deleteResponse = await GetContext().DeleteAsync<TEntity>(inputData, x => x.Index(indexName)).ConfigureAwait(false);
+            var deleteResponse = await GetContext().DeleteAsync<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True)).ConfigureAwait(false);
             AfterQueryResponse(deleteResponse);
 
-            if (deleteResponse == null || !deleteResponse.IsValid || deleteResponse.Result != Result.Deleted)
+            if (deleteResponse == null || !deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
                 throw new InvalidOperationException("Could not delete data", new Exception(JsonConvert.SerializeObject(deleteResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", new string?[] { inputData?.ToString(), indexName });
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData?.ToString(), indexName]);
         }
 
         public string GetIndexName<TEntity>(ElasticMap<TEntity> elasticMap, TEntity inputData) where TEntity : class
@@ -386,7 +392,7 @@ namespace FluentHelper.ElasticSearch.Common
                 indexName += $"-{indexCalculated}";
 
             indexName = indexName.ToLower();
-            VerifyIndexNames(indexName, false);
+            indexName.ThrowIfIndexInvalid(false);
             return indexName;
         }
 
@@ -400,43 +406,27 @@ namespace FluentHelper.ElasticSearch.Common
             var indexesToQuery = elasticMap.IndexCalculator!.CalcQueryIndex(baseObjectFilter).Select(x => x.ToLower());
 
             string indexNames = indexesToQuery.Any() ? $"{fixedIndexName}-{string.Join($",{fixedIndexName}-".ToLower(), indexesToQuery)}" : fixedIndexName;
-            VerifyIndexNames(indexNames, true);
+            indexNames.ThrowIfIndexInvalid(false);
             return indexNames;
         }
 
-        public void VerifyIndexNames(string indexNames, bool isRetrieveQuery)
-        {
-            string[] indexList = indexNames.Split(',');
-            foreach (string indexName in indexList)
-            {
-                if (indexName.Length > 255)
-                    throw new Exception($"Index name {indexName} exceeded maximum length of 255 characters");
 
-                if (indexName == "." || indexName == "..")
-                    throw new Exception($"Index name cannot be '.' or '..'");
 
-                if (indexName.StartsWith("-") || indexName.StartsWith("_") || indexName.StartsWith("+"))
-                    throw new Exception($"Index name {indexName} cannot start with '-' or '_' or '+'");
-
-                if (indexName.Contains("\\") || indexName.Contains("/") || indexName.Contains("?") ||
-                        indexName.Contains("\"") || indexName.Contains("<") || indexName.Contains(">") || indexName.Contains("|") ||
-                        indexName.Contains(" ") || indexName.Contains(",") || indexName.Contains("#") || (indexName.Contains("*") && !isRetrieveQuery))
-                    throw new Exception($"Index name {indexName} cannot contain '\', '/', '*', '?', '\"', '<', '>', '|', ' ', ',', '#'");
-            }
-        }
-
-        public void AfterQueryResponse(IResponse queryResponse)
+        public void AfterQueryResponse(ElasticsearchResponse queryResponse)
         {
             if (queryResponse == null)
                 return;
 
-            if (!queryResponse.IsValid)
+            if (!queryResponse.IsValidResponse)
             {
-                _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, queryResponse!.OriginalException, queryResponse!.DebugInformation, Array.Empty<string?>());
+                if (!queryResponse.TryGetOriginalException(out var originalException))
+                    originalException = null;
+
+                _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, originalException, queryResponse!.DebugInformation, []);
                 return;
             }
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, queryResponse!.DebugInformation, Array.Empty<string?>());
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, queryResponse!.DebugInformation, []);
         }
 
         public void Dispose()
@@ -444,30 +434,6 @@ namespace FluentHelper.ElasticSearch.Common
             _client = null;
         }
 
-        private object? GetFieldValue<TEntity>(TEntity inputData, string fieldName) where TEntity : class
-        {
-            if (inputData == null)
-                return null;
 
-            foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(inputData.GetType()))
-                if (property.Name == fieldName)
-                    return property.GetValue(inputData);
-
-            return null;
-        }
-
-        private ExpandoObject GetExpandoObject<TEntity>(TEntity inputData, IElasticFieldUpdater<TEntity>? elasticFieldUpdater) where TEntity : class
-        {
-            if (elasticFieldUpdater == null)
-                throw new Exception("ElasticFieldUpdater cannot be null");
-
-            var expandoInstance = new ExpandoObject();
-
-            foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(inputData.GetType()))
-                if (elasticFieldUpdater.GetFieldList().Contains(property.Name))
-                    expandoInstance.TryAdd($"{char.ToLower(property.Name[0]) + property.Name.Substring(1)}", property.GetValue(inputData));
-
-            return expandoInstance!;
-        }
     }
 }

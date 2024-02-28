@@ -1,8 +1,7 @@
-﻿using FluentHelper.ElasticSearch.IndexCalculators;
+﻿using Elastic.Clients.Elasticsearch;
+using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Interfaces;
-using Nest;
 using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace FluentHelper.ElasticSearch.Common
@@ -13,9 +12,6 @@ namespace FluentHelper.ElasticSearch.Common
         public IElasticIndexCalculator<TEntity> IndexCalculator { get; private set; }
 
         public string IdPropertyName { get; private set; } = string.Empty;
-
-        public List<Expression<Func<TEntity, object>>> IgnoreList { get; private set; } = new List<Expression<Func<TEntity, object>>>();
-        public Dictionary<Expression<Func<TEntity, object>>, string> PropertyNameList { get; private set; } = new Dictionary<Expression<Func<TEntity, object>>, string>();
 
         public ElasticMap()
         {
@@ -37,34 +33,16 @@ namespace FluentHelper.ElasticSearch.Common
             IdPropertyName = ((MemberExpression)expression.Body).Member.Name;
         }
 
-        protected void Ignore(Expression<Func<TEntity, object>> expression)
-        {
-            IgnoreList.Add(expression);
-        }
-
-        protected void Rename(Expression<Func<TEntity, object>> expression, string newName)
-        {
-            PropertyNameList.Add(expression, newName);
-        }
-
         public Type GetMapType()
         {
             return typeof(TEntity);
         }
 
-        public void ApplySpecialMap(ConnectionSettings esSettings)
+        public void ApplySpecialMap(ElasticsearchClientSettings esSettings)
         {
             esSettings.DefaultMappingFor<TEntity>(x =>
             {
                 x.IdProperty(IdPropertyName);
-
-                foreach (var toIgnore in IgnoreList)
-                    x.Ignore(toIgnore);
-
-                foreach (var propertyName in PropertyNameList)
-                    x.PropertyName(propertyName.Key, propertyName.Value);
-
-                return x;
             });
         }
 

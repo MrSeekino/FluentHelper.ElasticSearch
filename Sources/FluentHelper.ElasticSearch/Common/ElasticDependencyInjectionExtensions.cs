@@ -9,7 +9,7 @@ namespace FluentHelper.ElasticSearch.Common
     {
         public static void AddFluentElasticWrapper(this IServiceCollection serviceCollection, Action<ElasticConfigBuilder> elasticConfigBuilderFunc, ServiceLifetime serviceLifetime = ServiceLifetime.Singleton)
         {
-            ElasticConfigBuilder elasticConfigBuilder = new ElasticConfigBuilder();
+            ElasticConfigBuilder elasticConfigBuilder = new();
             elasticConfigBuilderFunc(elasticConfigBuilder);
 
             IElasticConfig elasticConfig = elasticConfigBuilder.Build();
