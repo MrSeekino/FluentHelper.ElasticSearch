@@ -49,7 +49,7 @@ namespace FluentHelper.ElasticSearch.Common
         public void Verify()
         {
             if (string.IsNullOrWhiteSpace(IdPropertyName))
-                throw new NullReferenceException($"IdProperty has not been set for {typeof(TEntity).Name}");
+                throw new InvalidOperationException($"IdProperty has not been set for {typeof(TEntity).Name}");
         }
 
         public abstract void Map();

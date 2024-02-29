@@ -40,9 +40,6 @@ namespace FluentHelper.ElasticSearch.Common
 
         public static ExpandoObject GetExpandoObject<TEntity>(this TEntity inputData, IElasticFieldUpdater<TEntity> elasticFieldUpdater) where TEntity : class
         {
-            if (elasticFieldUpdater == null)
-                throw new ArgumentNullException(nameof(elasticFieldUpdater));
-
             var expandoInstance = new ExpandoObject();
 
             var fieldProperties = TypeDescriptor.GetProperties(inputData.GetType());

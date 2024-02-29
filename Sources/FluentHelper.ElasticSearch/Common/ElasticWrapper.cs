@@ -93,7 +93,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (addResponse == null || !addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
                 throw new InvalidOperationException("Could not add data", new Exception(JsonConvert.SerializeObject(addResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData?.ToString(), indexName]);
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), indexName]);
         }
 
         public async Task AddAsync<TEntity>(TEntity inputData) where TEntity : class
@@ -109,7 +109,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (addResponse == null || !addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
                 throw new InvalidOperationException("Could not add data", new Exception(JsonConvert.SerializeObject(addResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData?.ToString(), indexName]);
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), indexName]);
         }
 
         public int BulkAdd<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
@@ -232,7 +232,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (updateResponse == null || !updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
                 throw new InvalidOperationException("Could not update data", new Exception(JsonConvert.SerializeObject(updateResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData?.ToString(), indexName]);
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), indexName]);
         }
 
         public async Task AddOrUpdateAsync<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts = 0) where TEntity : class
@@ -253,7 +253,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (updateResponse == null || !updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
                 throw new InvalidOperationException("Could not update data", new Exception(JsonConvert.SerializeObject(updateResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData?.ToString(), indexName]);
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), indexName]);
         }
 
         public IEnumerable<TEntity> Query<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
@@ -378,7 +378,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (deleteResponse == null || !deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
                 throw new InvalidOperationException("Could not delete data", new Exception(JsonConvert.SerializeObject(deleteResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData?.ToString(), indexName]);
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), indexName]);
         }
 
         public async Task DeleteAsync<TEntity>(TEntity inputData) where TEntity : class
@@ -395,7 +395,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (deleteResponse == null || !deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
                 throw new InvalidOperationException("Could not delete data", new Exception(JsonConvert.SerializeObject(deleteResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData?.ToString(), indexName]);
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), indexName]);
         }
 
         public string GetIndexName<TEntity>(ElasticMap<TEntity> elasticMap, TEntity inputData) where TEntity : class
