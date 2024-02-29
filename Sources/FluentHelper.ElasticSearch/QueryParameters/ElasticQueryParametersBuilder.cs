@@ -96,7 +96,7 @@ namespace FluentHelper.ElasticSearch.QueryParameters
 
         public ElasticQueryParametersBuilder<TEntity> Take(int takeValue)
         {
-            ArgumentOutOfRangeException.ThrowIfLessThan(1, takeValue);
+            ArgumentOutOfRangeException.ThrowIfLessThan(takeValue, 1);
 
             _take = takeValue;
             return this;

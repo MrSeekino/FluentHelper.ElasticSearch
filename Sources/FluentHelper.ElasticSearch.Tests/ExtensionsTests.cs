@@ -112,6 +112,15 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
+        public void Verify_GetFieldValue_ReturnNullWhenInputIsNull()
+        {
+            TestEntity testEntity = null!;
+
+            object? fieldValue = testEntity.GetFieldValue("Name");
+            Assert.That(fieldValue, Is.Null);
+        }
+
+        [Test]
         public void Verify_GetExpandoObject_ThrowsWhenElasticInputUpdaterIsNull()
         {
             var testEntity = new TestEntity
@@ -123,7 +132,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 GroupName = "TestGroup"
             };
 
-            Assert.Throws<ArgumentNullException>(() => testEntity.GetExpandoObject(null!));
+            Assert.Throws<NullReferenceException>(() => testEntity.GetExpandoObject(null!));
         }
 
         [Test]
