@@ -14,18 +14,18 @@ namespace FluentHelper.ElasticSearch.Common
             foreach (string indexName in indexList)
             {
                 if (indexName.Length > 255)
-                    throw new Exception($"Index name {indexName} exceeded maximum length of 255 characters");
+                    throw new ArgumentOutOfRangeException($"Index name {indexName} exceeded maximum length of 255 characters");
 
                 if (indexName == "." || indexName == "..")
-                    throw new Exception($"Index name cannot be '.' or '..'");
+                    throw new FormatException($"Index name cannot be '.' or '..'");
 
                 if (indexName.StartsWith('-') || indexName.StartsWith('_') || indexName.StartsWith('+'))
-                    throw new Exception($"Index name {indexName} cannot start with '-' or '_' or '+'");
+                    throw new FormatException($"Index name {indexName} cannot start with '-' or '_' or '+'");
 
-                if (indexName.Contains('\\') || indexName.Contains('/') || indexName.Contains('?') ||
+                if (indexName.Contains('\\') || indexName.Contains('/') || indexName.Contains('?') || indexName.Contains('"') ||
                         indexName.Contains('\'') || indexName.Contains('<') || indexName.Contains('>') || indexName.Contains('|') ||
-                        indexName.Contains(' ') || indexName.Contains(',') || indexName.Contains('#') || (indexName.Contains('*') && !isRetrieveQuery))
-                    throw new Exception($"Index name {indexName} cannot contain '\', '/', '*', '?', '\"', '<', '>', '|', ' ', ',', '#'");
+                        indexName.Contains(' ') || indexName.Contains('#') || (indexName.Contains('*') && !isRetrieveQuery))
+                    throw new FormatException($"Index name {indexName} cannot contain '\', '/', '*', '?', '\"', '<', '>', '|', ' ', '#'");
             }
         }
 
@@ -34,23 +34,24 @@ namespace FluentHelper.ElasticSearch.Common
             if (inputData == null)
                 return null;
 
-            foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(inputData.GetType()))
-                if (property.Name == fieldName)
-                    return property.GetValue(inputData);
-
-            return null;
+            var propertyData = TypeDescriptor.GetProperties(inputData.GetType()).Find(fieldName, true);
+            return propertyData?.GetValue(inputData);
         }
 
-        public static ExpandoObject GetExpandoObject<TEntity>(this TEntity inputData, IElasticFieldUpdater<TEntity>? elasticFieldUpdater) where TEntity : class
+        public static ExpandoObject GetExpandoObject<TEntity>(this TEntity inputData, IElasticFieldUpdater<TEntity> elasticFieldUpdater) where TEntity : class
         {
             if (elasticFieldUpdater == null)
-                throw new Exception("ElasticFieldUpdater cannot be null");
+                throw new ArgumentNullException(nameof(elasticFieldUpdater));
 
             var expandoInstance = new ExpandoObject();
 
-            foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(inputData.GetType()))
-                if (elasticFieldUpdater.GetFieldList().Contains(property.Name))
+            var fieldProperties = TypeDescriptor.GetProperties(inputData.GetType());
+            foreach (var field in elasticFieldUpdater.GetFieldList())
+            {
+                var property = fieldProperties.Find(field, true);
+                if (property != null)
                     expandoInstance.TryAdd($"{char.ToLower(property.Name[0]) + property.Name.Substring(1)}", property.GetValue(inputData));
+            }
 
             return expandoInstance!;
         }

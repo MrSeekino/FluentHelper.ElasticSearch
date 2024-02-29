@@ -13,7 +13,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         public string IdPropertyName { get; private set; } = string.Empty;
 
-        public ElasticMap()
+        protected ElasticMap()
         {
             IndexCalculator = new BasicIndexCalculator<TEntity>();
         }
@@ -49,7 +49,7 @@ namespace FluentHelper.ElasticSearch.Common
         public void Verify()
         {
             if (string.IsNullOrWhiteSpace(IdPropertyName))
-                throw new Exception($"IdProperty has not been set for {typeof(TEntity).Name}");
+                throw new NullReferenceException($"IdProperty has not been set for {typeof(TEntity).Name}");
         }
 
         public abstract void Map();

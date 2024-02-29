@@ -29,14 +29,14 @@ namespace FluentHelper.ElasticSearch.Common
         public ElasticConfigBuilder WithConnectionUri(string connectionUri)
             => WithConnectionUri(new Uri(connectionUri));
 
-        public ElasticConfigBuilder WithConnectionsPool(IEnumerable<string> connectionPool)
-            => WithConnectionsPool(connectionPool.Select(c => new Uri(c)));
-
         public ElasticConfigBuilder WithConnectionUri(Uri connectionUri)
         {
             _connectionPool.Add(connectionUri);
             return this;
         }
+
+        public ElasticConfigBuilder WithConnectionsPool(IEnumerable<string> connectionPool)
+            => WithConnectionsPool(connectionPool.Select(c => new Uri(c)));
 
         public ElasticConfigBuilder WithConnectionsPool(IEnumerable<Uri> connectionPool)
         {

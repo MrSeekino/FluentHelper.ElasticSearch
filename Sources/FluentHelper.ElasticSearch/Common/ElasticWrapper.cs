@@ -82,6 +82,8 @@ namespace FluentHelper.ElasticSearch.Common
 
         public void Add<TEntity>(TEntity inputData) where TEntity : class
         {
+            ArgumentNullException.ThrowIfNull(inputData);
+
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = GetIndexName(mapInstance, inputData);
 
@@ -96,6 +98,8 @@ namespace FluentHelper.ElasticSearch.Common
 
         public async Task AddAsync<TEntity>(TEntity inputData) where TEntity : class
         {
+            ArgumentNullException.ThrowIfNull(inputData);
+
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = GetIndexName(mapInstance, inputData);
 
@@ -110,7 +114,9 @@ namespace FluentHelper.ElasticSearch.Common
 
         public int BulkAdd<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
         {
-            if (inputList == null || !inputList.Any())
+            ArgumentNullException.ThrowIfNull(inputList);
+
+            if (!inputList.Any())
                 return 0;
 
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
@@ -159,7 +165,9 @@ namespace FluentHelper.ElasticSearch.Common
 
         public async Task<int> BulkAddAsync<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
         {
-            if (inputList == null || !inputList.Any())
+            ArgumentNullException.ThrowIfNull(inputList);
+
+            if (!inputList.Any())
                 return 0;
 
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
@@ -208,10 +216,13 @@ namespace FluentHelper.ElasticSearch.Common
 
         public void AddOrUpdate<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts = 0) where TEntity : class
         {
+            ArgumentNullException.ThrowIfNull(inputData);
+            ArgumentNullException.ThrowIfNull(fieldUpdaterExpr);
+
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = GetIndexName(mapInstance, inputData);
 
-            IElasticFieldUpdater<TEntity>? elasticFieldUpdater = fieldUpdaterExpr != null ? fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName)) : null;
+            var elasticFieldUpdater = fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName));
             var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
 
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
@@ -226,10 +237,13 @@ namespace FluentHelper.ElasticSearch.Common
 
         public async Task AddOrUpdateAsync<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts = 0) where TEntity : class
         {
+            ArgumentNullException.ThrowIfNull(inputData);
+            ArgumentNullException.ThrowIfNull(fieldUpdaterExpr);
+
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = GetIndexName(mapInstance, inputData);
 
-            IElasticFieldUpdater<TEntity>? elasticFieldUpdater = fieldUpdaterExpr != null ? fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName)) : null;
+            var elasticFieldUpdater = fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName));
             var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
 
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
@@ -352,6 +366,8 @@ namespace FluentHelper.ElasticSearch.Common
 
         public void Delete<TEntity>(TEntity inputData) where TEntity : class
         {
+            ArgumentNullException.ThrowIfNull(inputData);
+
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = GetIndexName(mapInstance, inputData);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
@@ -367,6 +383,8 @@ namespace FluentHelper.ElasticSearch.Common
 
         public async Task DeleteAsync<TEntity>(TEntity inputData) where TEntity : class
         {
+            ArgumentNullException.ThrowIfNull(inputData);
+
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = GetIndexName(mapInstance, inputData);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
@@ -433,7 +451,5 @@ namespace FluentHelper.ElasticSearch.Common
         {
             _client = null;
         }
-
-
     }
 }
