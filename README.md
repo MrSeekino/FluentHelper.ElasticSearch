@@ -4,6 +4,9 @@ FluentHelper.ElasticSearch is an extension for Elasticsearch for project that us
 
 It provides some simple interfaces and methods that allows you to make mappings using FluentApi and to generate an ElasticClient with some default useful methods already defined.
 
+### Build & Tests Status
+![Build & Tests](https://github.com/MrSeekino/FluentHelper.ElasticSearch/actions/workflows/dotnet.yml/badge.svg)
+
 ## Latest Version
 The best and quickest way to get the latest release of FluentHelper.ElasticSearch is to add it to your project using 
 NuGet (https://www.nuget.org/packages/FluentHelper.ElasticSearch)
