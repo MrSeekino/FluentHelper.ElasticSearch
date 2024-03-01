@@ -14,6 +14,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var builder = ElasticQueryParametersBuilder<TestEntity>.Create();
 
             var queryParameters = builder.Build();
+            Assert.That(queryParameters, Is.Not.Null);
             Assert.That(queryParameters.QueryDescriptor, Is.Null);
             Assert.That(queryParameters.SourceConfig, Is.Null);
             Assert.That(queryParameters.SortOptionsDescriptor, Is.Null);

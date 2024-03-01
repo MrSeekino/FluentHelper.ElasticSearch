@@ -9,22 +9,40 @@ namespace FluentHelper.ElasticSearch.Common
 {
     public sealed class ElasticConfigBuilder
     {
-        private List<Uri> _connectionPool = [];
-        private string _certificateFingerprint = string.Empty;
+        private List<Uri> _connectionPool;
+        private string _certificateFingerprint;
         private (string Username, string Password)? _basicAuthentication;
 
-        private bool _enableDebug = false;
+        private bool _enableDebug;
         private Action<ApiCallDetails>? _requestCompleted;
 
         private TimeSpan? _requestTimeout;
-        private int _bulkInsertChunkSize = 50;
+        private int _bulkInsertChunkSize;
 
-        private string _indexPrefix = string.Empty;
-        private string _indexSuffix = string.Empty;
+        private string _indexPrefix;
+        private string _indexSuffix;
 
         private Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, string?[]>? _logAction;
 
-        private readonly List<Assembly> _mappingAssemblies = [];
+        private readonly List<Assembly> _mappingAssemblies;
+
+        private ElasticConfigBuilder()
+        {
+            _connectionPool = [];
+            _certificateFingerprint = string.Empty;
+            _basicAuthentication = null;
+            _enableDebug = false;
+            _requestCompleted = null;
+            _requestTimeout = null;
+            _bulkInsertChunkSize = 50;
+            _indexPrefix = string.Empty;
+            _indexSuffix = string.Empty;
+            _logAction = null;
+            _mappingAssemblies = [];
+        }
+
+        public static ElasticConfigBuilder Create()
+            => new ElasticConfigBuilder();
 
         public ElasticConfigBuilder WithConnectionUri(string connectionUri)
             => WithConnectionUri(new Uri(connectionUri));
@@ -43,6 +61,12 @@ namespace FluentHelper.ElasticSearch.Common
             _connectionPool = connectionPool.ToList();
             return this;
         }
+
+        public ElasticConfigBuilder WithAuthorization(string? certificateFingerprint)
+            => WithAuthorization(certificateFingerprint, null);
+
+        public ElasticConfigBuilder WithAuthorization((string username, string password)? basicAuthentication = null)
+            => WithAuthorization(null, basicAuthentication);
 
         public ElasticConfigBuilder WithAuthorization(string? certificateFingerprint = null, (string username, string password)? basicAuthentication = null)
         {
