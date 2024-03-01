@@ -62,10 +62,10 @@ namespace FluentHelper.ElasticSearch.Common
             return this;
         }
 
-        public ElasticConfigBuilder WithAuthorization(string? certificateFingerprint)
+        public ElasticConfigBuilder WithAuthorization(string certificateFingerprint)
             => WithAuthorization(certificateFingerprint, null);
 
-        public ElasticConfigBuilder WithAuthorization((string username, string password)? basicAuthentication = null)
+        public ElasticConfigBuilder WithAuthorization((string username, string password) basicAuthentication)
             => WithAuthorization(null, basicAuthentication);
 
         public ElasticConfigBuilder WithAuthorization(string? certificateFingerprint = null, (string username, string password)? basicAuthentication = null)
