@@ -82,6 +82,11 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var queryParameters = builder.Build();
             Assert.That(queryParameters.SourceConfig, Is.Not.Null);
+            Assert.That(queryParameters.SourceConfig!.HasSourceFilterValue, Is.True);
+
+            queryParameters.SourceConfig.TryGetSourceFilter(out var sourceFilter);
+            Assert.That(sourceFilter!.Excludes, Is.Null);
+            Assert.That(sourceFilter!.Includes, Is.Null);
         }
 
         [Test]
@@ -92,6 +97,11 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var queryParameters = builder.Build();
             Assert.That(queryParameters.SourceConfig, Is.Not.Null);
+            Assert.That(queryParameters.SourceConfig!.HasSourceFilterValue, Is.True);
+
+            queryParameters.SourceConfig.TryGetSourceFilter(out var sourceFilter);
+            Assert.That(sourceFilter!.Excludes, Is.Null);
+            Assert.That(sourceFilter!.Includes?.Count(), Is.EqualTo(1));
         }
 
         [Test]
@@ -102,6 +112,27 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var queryParameters = builder.Build();
             Assert.That(queryParameters.SourceConfig, Is.Not.Null);
+            Assert.That(queryParameters.SourceConfig!.HasSourceFilterValue, Is.True);
+
+            queryParameters.SourceConfig.TryGetSourceFilter(out var sourceFilter);
+            Assert.That(sourceFilter!.Excludes?.Count(), Is.EqualTo(1));
+            Assert.That(sourceFilter!.Includes, Is.Null);
+        }
+
+        [Test]
+        public void Verify_SourceFilter_IsCorrectlyApplied_WhenUsingMultipleExcludeAndInclude()
+        {
+            var builder = ElasticQueryParametersBuilder<TestEntity>.Create()
+                            .Exclude(f => f.Name).Exclude(f => f.Active)
+                            .Include(f => f.CreationTime).Include(f => f.GroupName);
+
+            var queryParameters = builder.Build();
+            Assert.That(queryParameters.SourceConfig, Is.Not.Null);
+            Assert.That(queryParameters.SourceConfig!.HasSourceFilterValue, Is.True);
+
+            queryParameters.SourceConfig.TryGetSourceFilter(out var sourceFilter);
+            Assert.That(sourceFilter!.Excludes?.Count(), Is.EqualTo(2));
+            Assert.That(sourceFilter!.Includes?.Count(), Is.EqualTo(2));
         }
     }
 }

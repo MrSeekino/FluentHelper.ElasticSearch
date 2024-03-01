@@ -1,5 +1,4 @@
-﻿using Elastic.Clients.Elasticsearch;
-using FluentHelper.ElasticSearch.Tests.Support;
+﻿using FluentHelper.ElasticSearch.Tests.Support;
 using NUnit.Framework;
 
 namespace FluentHelper.ElasticSearch.Tests
@@ -12,11 +11,6 @@ namespace FluentHelper.ElasticSearch.Tests
         {
             var testEntityMap = new TestEntityMap();
             Assert.Throws<InvalidOperationException>(testEntityMap.Verify);
-        }
-
-        public void A()
-        {
-            ElasticsearchClientSettings elasticsearchClientSettings = new ElasticsearchClientSettings();
         }
     }
 }

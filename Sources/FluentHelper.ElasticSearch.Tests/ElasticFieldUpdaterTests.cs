@@ -21,7 +21,7 @@ namespace FluentHelper.ElasticSearch.Tests
             IElasticFieldUpdater<TestEntity> elasticFieldUpdater = new ElasticFieldUpdater<TestEntity>("Id").UpdateAllFields();
 
             var fieldList = elasticFieldUpdater.GetFieldList();
-            Assert.That(fieldList.Count(), Is.EqualTo(4));
+            Assert.That(fieldList.Count, Is.EqualTo(4));
             Assert.That(fieldList.Contains("GroupName"), Is.True);
             Assert.That(fieldList.Contains("Name"), Is.True);
             Assert.That(fieldList.Contains("CreationTime"), Is.True);
