@@ -7,8 +7,9 @@ namespace FluentHelper.ElasticSearch.Interfaces
 {
     public interface IElasticWrapper : IDisposable
     {
-        ElasticsearchClient GetContext();
-        ElasticsearchClient CreateNewContext();
+        int MappingLength { get; }
+
+        ElasticsearchClient GetOrCreateClient();
 
         void Add<TEntity>(TEntity inputData) where TEntity : class;
         Task AddAsync<TEntity>(TEntity inputData) where TEntity : class;

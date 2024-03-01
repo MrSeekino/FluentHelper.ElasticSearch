@@ -20,9 +20,14 @@ namespace FluentHelper.ElasticSearch.Common
         private readonly IElasticConfig _elasticConfig;
         private readonly Dictionary<Type, IElasticMap> _entityMappingList;
 
+        public int MappingLength => _entityMappingList.Count;
+
         public ElasticWrapper(IElasticConfig elasticConfig, IEnumerable<IElasticMap> mappings)
+            : this(null, elasticConfig, mappings) { }
+
+        public ElasticWrapper(ElasticsearchClient? client, IElasticConfig elasticConfig, IEnumerable<IElasticMap> mappings)
         {
-            _client = null;
+            _client = client;
             _elasticConfig = elasticConfig;
 
             _entityMappingList = [];
@@ -35,7 +40,7 @@ namespace FluentHelper.ElasticSearch.Common
             }
         }
 
-        internal void CreateDbContext()
+        internal void CreateClient()
         {
             _client = null;
 
@@ -54,30 +59,20 @@ namespace FluentHelper.ElasticSearch.Common
             if (_elasticConfig.RequestTimeout.HasValue)
                 esSettings.RequestTimeout(_elasticConfig.RequestTimeout.Value);
 
-            SetMappings(esSettings);
+            foreach (var m in _entityMappingList)
+                m.Value.ApplySpecialMap(esSettings);
+
             _client = new ElasticsearchClient(esSettings);
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Trace, null, "ElasticClient created", []);
         }
 
-        internal void SetMappings(ElasticsearchClientSettings esSettings)
-        {
-            foreach (var m in _entityMappingList)
-                m.Value.ApplySpecialMap(esSettings);
-        }
-
-        public ElasticsearchClient GetContext()
+        public ElasticsearchClient GetOrCreateClient()
         {
             if (_client == null)
-                CreateDbContext();
+                CreateClient();
 
             return _client!;
-        }
-
-        public ElasticsearchClient CreateNewContext()
-        {
-            Dispose();
-            return GetContext();
         }
 
         public void Add<TEntity>(TEntity inputData) where TEntity : class
@@ -87,7 +82,7 @@ namespace FluentHelper.ElasticSearch.Common
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = GetIndexName(mapInstance, inputData);
 
-            var addResponse = GetContext().Index(inputData, x => x.Index(indexName));
+            var addResponse = GetOrCreateClient().Index(inputData, indexName);
             AfterQueryResponse(addResponse);
 
             if (addResponse == null || !addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
@@ -103,7 +98,7 @@ namespace FluentHelper.ElasticSearch.Common
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = GetIndexName(mapInstance, inputData);
 
-            var addResponse = await GetContext().IndexAsync(inputData, x => x.Index(indexName)).ConfigureAwait(false);
+            var addResponse = await GetOrCreateClient().IndexAsync(inputData, indexName).ConfigureAwait(false);
             AfterQueryResponse(addResponse);
 
             if (addResponse == null || !addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
@@ -139,7 +134,7 @@ namespace FluentHelper.ElasticSearch.Common
                         var inputListToAdd = groupedInputData.InputList.Skip(indexedElements).Take(_elasticConfig.BulkInsertChunkSize).ToList();
                         _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Indexing {addNumber} elements into {indexName}. {bulkProgress}", [inputListToAdd.Count.ToString(), groupedInputData.IndexName, $"{indexedElements}/{groupedInputData.InputList}"]);
 
-                        var bulkResponse = GetContext().Bulk(b => b.Index(groupedInputData.IndexName).IndexMany(inputListToAdd));
+                        var bulkResponse = GetOrCreateClient().Bulk(b => b.Index(groupedInputData.IndexName).IndexMany(inputListToAdd));
                         AfterQueryResponse(bulkResponse);
 
                         if (bulkResponse == null || !bulkResponse.IsValidResponse || bulkResponse.Errors)
@@ -190,7 +185,7 @@ namespace FluentHelper.ElasticSearch.Common
                         var inputListToAdd = groupedInputData.InputList.Skip(indexedElements).Take(_elasticConfig.BulkInsertChunkSize).ToList();
                         _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Indexing {addNumber} elements into {indexName}. {bulkProgress}", [inputListToAdd.Count.ToString(), groupedInputData.IndexName, $"{indexedElements}/{groupedInputData.InputList}"]);
 
-                        var bulkResponse = await GetContext().BulkAsync(b => b.Index(groupedInputData.IndexName).IndexMany(inputListToAdd)).ConfigureAwait(false);
+                        var bulkResponse = await GetOrCreateClient().BulkAsync(b => b.Index(groupedInputData.IndexName).IndexMany(inputListToAdd)).ConfigureAwait(false);
                         AfterQueryResponse(bulkResponse);
 
                         if (bulkResponse == null || !bulkResponse.IsValidResponse || bulkResponse.Errors)
@@ -226,7 +221,7 @@ namespace FluentHelper.ElasticSearch.Common
             var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
 
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
-            var updateResponse = GetContext().Update<TEntity, ExpandoObject>(indexName, inputId!.ToString()!, x => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts));
+            var updateResponse = GetOrCreateClient().Update<TEntity, ExpandoObject>(indexName, inputId!.ToString()!, x => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts));
             AfterQueryResponse(updateResponse);
 
             if (updateResponse == null || !updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
@@ -247,7 +242,7 @@ namespace FluentHelper.ElasticSearch.Common
             var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
 
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
-            var updateResponse = await GetContext().UpdateAsync<TEntity, ExpandoObject>(indexName, inputId!.ToString()!, x => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts)).ConfigureAwait(false);
+            var updateResponse = await GetOrCreateClient().UpdateAsync<TEntity, ExpandoObject>(indexName, inputId!.ToString()!, x => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts)).ConfigureAwait(false);
             AfterQueryResponse(updateResponse);
 
             if (updateResponse == null || !updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
@@ -280,7 +275,7 @@ namespace FluentHelper.ElasticSearch.Common
                 searchDescriptor.From(queryParameters.Skip).Size(queryParameters.Take);
             }
 
-            var queryResponse = GetContext().Search(searchDescriptor);
+            var queryResponse = GetOrCreateClient().Search(searchDescriptor);
             AfterQueryResponse(queryResponse);
 
             if (queryResponse == null || !queryResponse.IsValidResponse)
@@ -313,7 +308,7 @@ namespace FluentHelper.ElasticSearch.Common
                 searchDescriptor.From(queryParameters.Skip).Size(queryParameters.Take);
             }
 
-            var queryResponse = await GetContext().SearchAsync(searchDescriptor).ConfigureAwait(false);
+            var queryResponse = await GetOrCreateClient().SearchAsync(searchDescriptor).ConfigureAwait(false);
             AfterQueryResponse(queryResponse);
 
             if (queryResponse == null || !queryResponse.IsValidResponse)
@@ -334,7 +329,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (queryParameters != null && queryParameters.QueryDescriptor != null)
                 countDescriptor.Query(queryParameters.QueryDescriptor);
 
-            var countResponse = GetContext().Count(countDescriptor);
+            var countResponse = GetOrCreateClient().Count(countDescriptor);
             AfterQueryResponse(countResponse);
 
             if (countResponse == null || !countResponse.IsValidResponse)
@@ -355,7 +350,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (queryParameters != null && queryParameters.QueryDescriptor != null)
                 countDescriptor.Query(queryParameters.QueryDescriptor);
 
-            var countResponse = await GetContext().CountAsync(countDescriptor).ConfigureAwait(false);
+            var countResponse = await GetOrCreateClient().CountAsync(countDescriptor).ConfigureAwait(false);
             AfterQueryResponse(countResponse);
 
             if (countResponse == null || !countResponse.IsValidResponse)
@@ -372,7 +367,7 @@ namespace FluentHelper.ElasticSearch.Common
             string indexName = GetIndexName(mapInstance, inputData);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
-            var deleteResponse = GetContext().Delete<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True));
+            var deleteResponse = GetOrCreateClient().Delete<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True));
             AfterQueryResponse(deleteResponse);
 
             if (deleteResponse == null || !deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
@@ -389,7 +384,7 @@ namespace FluentHelper.ElasticSearch.Common
             string indexName = GetIndexName(mapInstance, inputData);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
-            var deleteResponse = await GetContext().DeleteAsync<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True)).ConfigureAwait(false);
+            var deleteResponse = await GetOrCreateClient().DeleteAsync<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True)).ConfigureAwait(false);
             AfterQueryResponse(deleteResponse);
 
             if (deleteResponse == null || !deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)

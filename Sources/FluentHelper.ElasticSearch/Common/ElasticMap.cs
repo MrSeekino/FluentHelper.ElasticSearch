@@ -8,14 +8,15 @@ namespace FluentHelper.ElasticSearch.Common
 {
     public abstract class ElasticMap<TEntity> : IElasticMap where TEntity : class
     {
-        public string BaseIndexName { get; private set; } = typeof(TEntity).Name;
+        public string BaseIndexName { get; private set; }
         public IElasticIndexCalculator<TEntity> IndexCalculator { get; private set; }
-
-        public string IdPropertyName { get; private set; } = string.Empty;
+        public string IdPropertyName { get; private set; }
 
         protected ElasticMap()
         {
+            BaseIndexName = typeof(TEntity).Name;
             IndexCalculator = new BasicIndexCalculator<TEntity>();
+            IdPropertyName = string.Empty;
         }
 
         protected void SetIndexCalculator(IElasticIndexCalculator<TEntity> indexCalculator)
