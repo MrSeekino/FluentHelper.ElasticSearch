@@ -23,5 +23,8 @@ namespace FluentHelper.ElasticSearch.Interfaces
         Task<long> CountAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class;
         void Delete<TEntity>(TEntity inputData) where TEntity : class;
         Task DeleteAsync<TEntity>(TEntity inputData) where TEntity : class;
+
+        string GetIndexName<TEntity>(TEntity inputData) where TEntity : class;
+        string GetIndexNamesForQueries<TEntity>(object? baseObjectFilter) where TEntity : class;
     }
 }

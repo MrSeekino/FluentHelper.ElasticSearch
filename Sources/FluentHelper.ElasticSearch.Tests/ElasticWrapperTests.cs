@@ -46,7 +46,7 @@ namespace FluentHelper.ElasticSearch.Tests
             expectedIndexName += testEntityMap.IndexCalculator.CalcEntityIndex(testEntityInstance);
             expectedIndexName = expectedIndexName.ToLower();
 
-            string indexName = elasticWrapper.GetIndexName(testEntityMap, testEntityInstance);
+            string indexName = elasticWrapper.GetIndexName(testEntityInstance);
             Assert.That(indexName, Is.Not.Null);
             Assert.That(indexName.Length, Is.GreaterThan(0));
             Assert.That(indexName, Is.EqualTo(expectedIndexName));
@@ -91,7 +91,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var indexesForQuery = $"{fixedIndexForQuery}{string.Join($",{fixedIndexForQuery}", queryIndexes)}";
             indexesForQuery = indexesForQuery.ToLower();
 
-            string indexForQuery = elasticWrapper.GetIndexNamesForQueries(testEntityMap, testFilter);
+            string indexForQuery = elasticWrapper.GetIndexNamesForQueries<TestEntity>(testFilter);
             Assert.That(indexForQuery, Is.Not.Null);
             Assert.That(indexForQuery.Length, Is.GreaterThan(0));
             Assert.That(indexForQuery, Is.EqualTo(indexesForQuery));
@@ -188,7 +188,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
-            IndexName indexName = esWrapper.GetIndexName(elasticMap, testData);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.Index(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse).AndDoes(x =>
             {
@@ -226,7 +226,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
-            IndexName indexName = esWrapper.GetIndexName(elasticMap, testData);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.IndexAsync(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse).AndDoes(x =>
             {

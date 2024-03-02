@@ -79,32 +79,26 @@ namespace FluentHelper.ElasticSearch.Common
         {
             ArgumentNullException.ThrowIfNull(inputData);
 
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexName = GetIndexName(mapInstance, inputData);
-
-            var addResponse = GetOrCreateClient().Index(inputData, indexName);
-            AfterQueryResponse(addResponse);
-
-            if (addResponse == null || !addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
-                throw new InvalidOperationException("Could not add data", new Exception(JsonConvert.SerializeObject(addResponse)));
-
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), indexName]);
+            var addResponse = GetOrCreateClient().Index(inputData, GetIndexName(inputData));
+            CheckAddResponse(inputData, addResponse);
         }
 
         public async Task AddAsync<TEntity>(TEntity inputData) where TEntity : class
         {
             ArgumentNullException.ThrowIfNull(inputData);
 
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexName = GetIndexName(mapInstance, inputData);
+            var addResponse = await GetOrCreateClient().IndexAsync(inputData, GetIndexName(inputData));
+            CheckAddResponse(inputData, addResponse);
+        }
 
-            var addResponse = await GetOrCreateClient().IndexAsync(inputData, indexName).ConfigureAwait(false);
+        private void CheckAddResponse<TEntity>(TEntity inputData, IndexResponse addResponse) where TEntity : class
+        {
             AfterQueryResponse(addResponse);
 
             if (addResponse == null || !addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
                 throw new InvalidOperationException("Could not add data", new Exception(JsonConvert.SerializeObject(addResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), indexName]);
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), addResponse.Index]);
         }
 
         public int BulkAdd<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
@@ -113,10 +107,8 @@ namespace FluentHelper.ElasticSearch.Common
 
             if (!inputList.Any())
                 return 0;
-
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-
-            var groupedInputList = inputList.GroupBy(inputData => GetIndexName(mapInstance, inputData)).Select(x => new
+            
+            var groupedInputList = inputList.GroupBy(inputData => GetIndexName(inputData)).Select(x => new
             {
                 IndexName = x.Key,
                 InputList = x.ToList()
@@ -167,7 +159,7 @@ namespace FluentHelper.ElasticSearch.Common
 
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
 
-            var groupedInputList = inputList.GroupBy(inputData => GetIndexName(mapInstance, inputData)).Select(x => new
+            var groupedInputList = inputList.GroupBy(inputData => GetIndexName(inputData)).Select(x => new
             {
                 IndexName = x.Key,
                 InputList = x.ToList()
@@ -215,7 +207,7 @@ namespace FluentHelper.ElasticSearch.Common
             ArgumentNullException.ThrowIfNull(fieldUpdaterExpr);
 
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexName = GetIndexName(mapInstance, inputData);
+            string indexName = GetIndexName(inputData);
 
             var elasticFieldUpdater = fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName));
             var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
@@ -236,7 +228,7 @@ namespace FluentHelper.ElasticSearch.Common
             ArgumentNullException.ThrowIfNull(fieldUpdaterExpr);
 
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexName = GetIndexName(mapInstance, inputData);
+            string indexName = GetIndexName(inputData);
 
             var elasticFieldUpdater = fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName));
             var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
@@ -253,9 +245,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         public IEnumerable<TEntity> Query<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-
-            string indexNames = GetIndexNamesForQueries(mapInstance, baseObjectFilter);
+            string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
             var searchDescriptor = new SearchRequestDescriptor<TEntity>();
             searchDescriptor.Index(indexNames);
@@ -286,9 +276,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         public async Task<IEnumerable<TEntity>> QueryAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-
-            string indexNames = GetIndexNamesForQueries(mapInstance, baseObjectFilter);
+            string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
             var searchDescriptor = new SearchRequestDescriptor<TEntity>();
             searchDescriptor.Index(indexNames);
@@ -319,8 +307,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         public long Count<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexNames = GetIndexNamesForQueries(mapInstance, baseObjectFilter);
+            string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
             var countDescriptor = new CountRequestDescriptor<TEntity>();
             countDescriptor.Indices(indexNames);
@@ -340,8 +327,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         public async Task<long> CountAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexNames = GetIndexNamesForQueries(mapInstance, baseObjectFilter);
+            string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
             var countDescriptor = new CountRequestDescriptor<TEntity>();
             countDescriptor.Indices(indexNames);
@@ -364,7 +350,7 @@ namespace FluentHelper.ElasticSearch.Common
             ArgumentNullException.ThrowIfNull(inputData);
 
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexName = GetIndexName(mapInstance, inputData);
+            string indexName = GetIndexName(inputData);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
             var deleteResponse = GetOrCreateClient().Delete<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True));
@@ -381,7 +367,7 @@ namespace FluentHelper.ElasticSearch.Common
             ArgumentNullException.ThrowIfNull(inputData);
 
             var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexName = GetIndexName(mapInstance, inputData);
+            string indexName = GetIndexName(inputData);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
             var deleteResponse = await GetOrCreateClient().DeleteAsync<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True)).ConfigureAwait(false);
@@ -393,14 +379,15 @@ namespace FluentHelper.ElasticSearch.Common
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), indexName]);
         }
 
-        public string GetIndexName<TEntity>(ElasticMap<TEntity> elasticMap, TEntity inputData) where TEntity : class
+        public string GetIndexName<TEntity>(TEntity inputData) where TEntity : class
         {
-            string indexName = string.IsNullOrWhiteSpace(_elasticConfig.IndexPrefix) ? $"{elasticMap.BaseIndexName}" : $"{_elasticConfig.IndexPrefix}-{elasticMap.BaseIndexName}";
+            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
+            string indexName = string.IsNullOrWhiteSpace(_elasticConfig.IndexPrefix) ? $"{mapInstance.BaseIndexName}" : $"{_elasticConfig.IndexPrefix}-{mapInstance.BaseIndexName}";
 
             if (!string.IsNullOrWhiteSpace(_elasticConfig.IndexSuffix))
                 indexName += $"-{_elasticConfig.IndexSuffix}";
 
-            string indexCalculated = elasticMap.IndexCalculator!.CalcEntityIndex(inputData);
+            string indexCalculated = mapInstance.IndexCalculator!.CalcEntityIndex(inputData);
             if (!string.IsNullOrWhiteSpace(indexCalculated))
                 indexName += $"-{indexCalculated}";
 
@@ -409,23 +396,22 @@ namespace FluentHelper.ElasticSearch.Common
             return indexName;
         }
 
-        public string GetIndexNamesForQueries<TEntity>(ElasticMap<TEntity> elasticMap, object? baseObjectFilter) where TEntity : class
+        public string GetIndexNamesForQueries<TEntity>(object? baseObjectFilter) where TEntity : class
         {
-            string fixedIndexName = string.IsNullOrWhiteSpace(_elasticConfig.IndexPrefix) ? $"{elasticMap.BaseIndexName}" : $"{_elasticConfig.IndexPrefix}-{elasticMap.BaseIndexName}";
+            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
+            string fixedIndexName = string.IsNullOrWhiteSpace(_elasticConfig.IndexPrefix) ? $"{mapInstance.BaseIndexName}" : $"{_elasticConfig.IndexPrefix}-{mapInstance.BaseIndexName}";
 
             if (!string.IsNullOrWhiteSpace(_elasticConfig.IndexSuffix))
                 fixedIndexName += $"-{_elasticConfig.IndexSuffix}";
 
-            var indexesToQuery = elasticMap.IndexCalculator!.CalcQueryIndex(baseObjectFilter).Select(x => x.ToLower());
+            var indexesToQuery = mapInstance.IndexCalculator!.CalcQueryIndex(baseObjectFilter).Select(x => x.ToLower());
 
             string indexNames = indexesToQuery.Any() ? $"{fixedIndexName}-{string.Join($",{fixedIndexName}-".ToLower(), indexesToQuery)}" : fixedIndexName;
             indexNames.ThrowIfIndexInvalid(true);
             return indexNames;
         }
 
-
-
-        public void AfterQueryResponse(ElasticsearchResponse queryResponse)
+        private void AfterQueryResponse(ElasticsearchResponse queryResponse)
         {
             if (queryResponse == null)
                 return;
