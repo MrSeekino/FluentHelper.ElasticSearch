@@ -239,5 +239,183 @@ namespace FluentHelper.ElasticSearch.Tests
 
             await esWrapper.AddAsync(testData);
         }
+
+        [Test]
+        public void Verify_BulkAdd_WorksCorrectly()
+        {
+            List<TestEntity> dataList = new()
+            {
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test01",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test02",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test03",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                }
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+            elasticConfig.BulkInsertChunkSize.Returns(2);
+
+            var createResponse = new BulkResponse { Errors = false };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(createResponse, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            int totalAddedElements = esWrapper.BulkAdd(dataList);
+            esClient.Received(2).Bulk(Arg.Any<Action<BulkRequestDescriptor>>());
+            Assert.That(totalAddedElements, Is.EqualTo(dataList.Count));
+        }
+
+        [Test]
+        public async Task Verify_BulkAddAsync_WorksCorrectly()
+        {
+            List<TestEntity> dataList = new()
+            {
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test01",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test02",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test03",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                }
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+            elasticConfig.BulkInsertChunkSize.Returns(2);
+
+            var createResponse = new BulkResponse { Errors = false };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(createResponse, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.BulkAsync(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            int totalAddedElements = await esWrapper.BulkAddAsync(dataList);
+            await esClient.Received(2).BulkAsync(Arg.Any<Action<BulkRequestDescriptor>>());
+            Assert.That(totalAddedElements, Is.EqualTo(dataList.Count));
+        }
+
+        [Test]
+        public void Verify_Delete_WorksCorrectly()
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var createResponse = new DeleteResponse { Result = Result.Deleted };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(createResponse, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+
+            esClient.Delete(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<DeleteRequestDescriptor<TestEntity>>>()).Returns(mockedResponse).AndDoes(x =>
+            {
+                var idToDelete = x.Arg<Id>();
+                var indexUsed = x.Arg<IndexName>();
+
+                Assert.That(idToDelete.ToString(), Is.EqualTo(testData.Id.ToString()));
+                Assert.That(indexUsed, Is.EqualTo(indexName));
+            });
+
+            esWrapper.Delete(testData);
+        }
+
+        [Test]
+        public async Task Verify_DeleteAsync_WorksCorrectly()
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var createResponse = new DeleteResponse { Result = Result.Deleted };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(createResponse, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+
+            esClient.DeleteAsync(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<DeleteRequestDescriptor<TestEntity>>>()).Returns(mockedResponse).AndDoes(x =>
+            {
+                var idToDelete = x.Arg<Id>();
+                var indexUsed = x.Arg<IndexName>();
+
+                Assert.That(idToDelete.ToString(), Is.EqualTo(testData.Id.ToString()));
+                Assert.That(indexUsed, Is.EqualTo(indexName));
+            });
+
+            await esWrapper.DeleteAsync(testData);
+        }
     }
 }

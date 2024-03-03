@@ -1,4 +1,5 @@
 ﻿using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Core.Bulk;
 using Elastic.Clients.Elasticsearch.Core.Reindex;
 using Elastic.Transport;
 using Elastic.Transport.Products.Elasticsearch;
@@ -141,7 +142,7 @@ namespace FluentHelper.ElasticSearch.Common
                 return tuple;
             });
 
-            foreach (var itemToSplit in groupedInput.Where(x => x.Items.Count > _elasticConfig.BulkInsertChunkSize))
+            foreach (var itemToSplit in groupedInput)
             {
                 if (itemToSplit.Items.Count <= _elasticConfig.BulkInsertChunkSize)
                 {
