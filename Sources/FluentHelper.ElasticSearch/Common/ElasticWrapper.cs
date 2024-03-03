@@ -215,37 +215,20 @@ namespace FluentHelper.ElasticSearch.Common
 
         public IEnumerable<TEntity> Query<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
-            string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
-
-            var searchDescriptor = new SearchRequestDescriptor<TEntity>();
-            searchDescriptor.Index(indexNames);
-            searchDescriptor.IgnoreUnavailable();
-
-            if (queryParameters != null)
-            {
-                if (queryParameters.QueryDescriptor != null)
-                    searchDescriptor.Query(queryParameters.QueryDescriptor);
-
-                if (queryParameters.SourceConfig != null)
-                    searchDescriptor.Source(queryParameters.SourceConfig);
-
-                if (queryParameters.SortOptionsDescriptor != null)
-                    searchDescriptor.Sort(queryParameters.SortOptionsDescriptor);
-
-                searchDescriptor.From(queryParameters.Skip).Size(queryParameters.Take);
-            }
-
+            var searchDescriptor = GetSearchRequestDescriptor(baseObjectFilter, queryParameters);
             var queryResponse = GetOrCreateClient().Search(searchDescriptor);
-            AfterQueryResponse(queryResponse);
-
-            if (queryResponse == null || !queryResponse.IsValidResponse)
-                throw new InvalidOperationException("Could not get data", new Exception(JsonConvert.SerializeObject(queryResponse)));
-
-            return queryResponse.Documents.AsEnumerable();
+            return CheckSearchResponse(queryResponse);
         }
 
         public async Task<IEnumerable<TEntity>> QueryAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
+            var searchDescriptor = GetSearchRequestDescriptor(baseObjectFilter, queryParameters);
+            var queryResponse = await GetOrCreateClient().SearchAsync(searchDescriptor).ConfigureAwait(false);
+            return CheckSearchResponse(queryResponse);
+        }
+
+        private SearchRequestDescriptor<TEntity> GetSearchRequestDescriptor<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        {
             string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
             var searchDescriptor = new SearchRequestDescriptor<TEntity>();
@@ -266,36 +249,34 @@ namespace FluentHelper.ElasticSearch.Common
                 searchDescriptor.From(queryParameters.Skip).Size(queryParameters.Take);
             }
 
-            var queryResponse = await GetOrCreateClient().SearchAsync(searchDescriptor).ConfigureAwait(false);
+            return searchDescriptor;
+        }
+
+        private IReadOnlyCollection<TEntity> CheckSearchResponse<TEntity>(SearchResponse<TEntity> queryResponse)
+        {
             AfterQueryResponse(queryResponse);
 
             if (queryResponse == null || !queryResponse.IsValidResponse)
                 throw new InvalidOperationException("Could not get data", new Exception(JsonConvert.SerializeObject(queryResponse)));
 
-            return queryResponse.Documents.AsEnumerable();
+            return queryResponse.Documents;
         }
 
         public long Count<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
-            string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
-
-            var countDescriptor = new CountRequestDescriptor<TEntity>();
-            countDescriptor.Indices(indexNames);
-            countDescriptor.IgnoreUnavailable();
-
-            if (queryParameters != null && queryParameters.QueryDescriptor != null)
-                countDescriptor.Query(queryParameters.QueryDescriptor);
-
+            var countDescriptor = GetCountRequestDescriptor(baseObjectFilter, queryParameters);
             var countResponse = GetOrCreateClient().Count(countDescriptor);
-            AfterQueryResponse(countResponse);
-
-            if (countResponse == null || !countResponse.IsValidResponse)
-                throw new InvalidOperationException("Could not count data", new Exception(JsonConvert.SerializeObject(countResponse)));
-
-            return countResponse.Count;
+            return CheckCountResponse(countResponse);
         }
 
         public async Task<long> CountAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        {
+            var countDescriptor = GetCountRequestDescriptor(baseObjectFilter, queryParameters);
+            var countResponse = await GetOrCreateClient().CountAsync(countDescriptor).ConfigureAwait(false);
+            return CheckCountResponse(countResponse);
+        }
+
+        private CountRequestDescriptor<TEntity> GetCountRequestDescriptor<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
@@ -306,7 +287,11 @@ namespace FluentHelper.ElasticSearch.Common
             if (queryParameters != null && queryParameters.QueryDescriptor != null)
                 countDescriptor.Query(queryParameters.QueryDescriptor);
 
-            var countResponse = await GetOrCreateClient().CountAsync(countDescriptor).ConfigureAwait(false);
+            return countDescriptor;
+        }
+
+        private long CheckCountResponse(CountResponse countResponse)
+        {
             AfterQueryResponse(countResponse);
 
             if (countResponse == null || !countResponse.IsValidResponse)
@@ -317,32 +302,34 @@ namespace FluentHelper.ElasticSearch.Common
 
         public void Delete<TEntity>(TEntity inputData) where TEntity : class
         {
-            ArgumentNullException.ThrowIfNull(inputData);
-
-            string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
-            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
-
-            var deleteResponse = GetOrCreateClient().Delete<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True));
-            AfterQueryResponse(deleteResponse);
-
-            if (deleteResponse == null || !deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
-                throw new InvalidOperationException("Could not delete data", new Exception(JsonConvert.SerializeObject(deleteResponse)));
-
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), indexName]);
+            var deleteParameters = GetDeleteParameters(inputData);
+            var deleteResponse = GetOrCreateClient().Delete<TEntity>(deleteParameters.IndexName, deleteParameters.Id, r => r.Refresh(Refresh.True));
+            CheckDeleteResponse(inputData, deleteResponse);
         }
 
         public async Task DeleteAsync<TEntity>(TEntity inputData) where TEntity : class
         {
+            var deleteParameters = GetDeleteParameters(inputData);
+            var deleteResponse = await GetOrCreateClient().DeleteAsync<TEntity>(deleteParameters.IndexName, deleteParameters.Id, r => r.Refresh(Refresh.True)).ConfigureAwait(false);
+            CheckDeleteResponse(inputData, deleteResponse);
+        }
+
+        private (string IndexName, Id Id) GetDeleteParameters<TEntity>(TEntity inputData) where TEntity : class
+        {
             string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
-            var deleteResponse = await GetOrCreateClient().DeleteAsync<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True)).ConfigureAwait(false);
+            return new(indexName, inputId!.ToString()!);
+        }
+
+        private void CheckDeleteResponse<TEntity>(TEntity inputData, DeleteResponse deleteResponse) where TEntity : class
+        {
             AfterQueryResponse(deleteResponse);
 
             if (deleteResponse == null || !deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
                 throw new InvalidOperationException("Could not delete data", new Exception(JsonConvert.SerializeObject(deleteResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), indexName]);
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), deleteResponse.Index]);
         }
 
         public string GetIndexName<TEntity>(TEntity inputData, out ElasticMap<TEntity> mapInstance) where TEntity : class
