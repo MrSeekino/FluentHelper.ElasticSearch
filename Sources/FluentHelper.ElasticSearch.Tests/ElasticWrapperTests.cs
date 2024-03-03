@@ -46,7 +46,7 @@ namespace FluentHelper.ElasticSearch.Tests
             expectedIndexName += testEntityMap.IndexCalculator.CalcEntityIndex(testEntityInstance);
             expectedIndexName = expectedIndexName.ToLower();
 
-            string indexName = elasticWrapper.GetIndexName(testEntityInstance);
+            string indexName = elasticWrapper.GetIndexName(testEntityInstance, out _);
             Assert.That(indexName, Is.Not.Null);
             Assert.That(indexName.Length, Is.GreaterThan(0));
             Assert.That(indexName, Is.EqualTo(expectedIndexName));
@@ -188,7 +188,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
-            IndexName indexName = esWrapper.GetIndexName(testData);
+            IndexName indexName = esWrapper.GetIndexName(testData, out _);
 
             esClient.Index(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse).AndDoes(x =>
             {
@@ -226,7 +226,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
-            IndexName indexName = esWrapper.GetIndexName(testData);
+            IndexName indexName = esWrapper.GetIndexName(testData, out _);
 
             esClient.IndexAsync(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse).AndDoes(x =>
             {

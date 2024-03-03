@@ -1,4 +1,5 @@
 ﻿using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Core.Reindex;
 using Elastic.Transport;
 using Elastic.Transport.Products.Elasticsearch;
 using FluentHelper.ElasticSearch.Interfaces;
@@ -77,17 +78,13 @@ namespace FluentHelper.ElasticSearch.Common
 
         public void Add<TEntity>(TEntity inputData) where TEntity : class
         {
-            ArgumentNullException.ThrowIfNull(inputData);
-
-            var addResponse = GetOrCreateClient().Index(inputData, GetIndexName(inputData));
+            var addResponse = GetOrCreateClient().Index(inputData, GetIndexName(inputData, out _));
             CheckAddResponse(inputData, addResponse);
         }
 
         public async Task AddAsync<TEntity>(TEntity inputData) where TEntity : class
         {
-            ArgumentNullException.ThrowIfNull(inputData);
-
-            var addResponse = await GetOrCreateClient().IndexAsync(inputData, GetIndexName(inputData));
+            var addResponse = await GetOrCreateClient().IndexAsync(inputData, GetIndexName(inputData, out _));
             CheckAddResponse(inputData, addResponse);
         }
 
@@ -103,48 +100,14 @@ namespace FluentHelper.ElasticSearch.Common
 
         public int BulkAdd<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
         {
-            ArgumentNullException.ThrowIfNull(inputList);
-
-            if (!inputList.Any())
-                return 0;
-            
-            var groupedInputList = inputList.GroupBy(inputData => GetIndexName(inputData)).Select(x => new
-            {
-                IndexName = x.Key,
-                InputList = x.ToList()
-            });
+            var groupedInputList = PrepareBulkData(inputList);
 
             int totalIndexedElements = 0;
             foreach (var groupedInputData in groupedInputList)
             {
-                int indexedElements = 0;
-
-                try
-                {
-                    while (indexedElements < groupedInputData.InputList.Count)
-                    {
-                        var inputListToAdd = groupedInputData.InputList.Skip(indexedElements).Take(_elasticConfig.BulkInsertChunkSize).ToList();
-                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Indexing {addNumber} elements into {indexName}. {bulkProgress}", [inputListToAdd.Count.ToString(), groupedInputData.IndexName, $"{indexedElements}/{groupedInputData.InputList}"]);
-
-                        var bulkResponse = GetOrCreateClient().Bulk(b => b.Index(groupedInputData.IndexName).IndexMany(inputListToAdd));
-                        AfterQueryResponse(bulkResponse);
-
-                        if (bulkResponse == null || !bulkResponse.IsValidResponse || bulkResponse.Errors)
-                            throw new InvalidOperationException("Could not bulkadd data", new Exception(JsonConvert.SerializeObject(bulkResponse)));
-
-                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Added {addNumber} to {indexName}", [inputListToAdd.Count.ToString(), groupedInputData.IndexName]);
-                        indexedElements += inputListToAdd.Count;
-                        totalIndexedElements += indexedElements;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, ex, "Could not BulkAdd some data on index {indexName}", [groupedInputData.IndexName]);
-                }
-                finally
-                {
-                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "BulkAdded {bulkProgress} to {indexName}", [$"{indexedElements}/{groupedInputData.InputList.Count}", groupedInputData.IndexName]);
-                }
+                var bulkResponse = GetOrCreateClient().Bulk(b => b.Index(groupedInputData.IndexName).IndexMany(groupedInputData.Items));
+                int addedItems = CheckBulkAddResponse(bulkResponse, groupedInputData.Items.Count, groupedInputData.IndexName);
+                totalIndexedElements += addedItems;
             }
 
             return totalIndexedElements;
@@ -152,95 +115,102 @@ namespace FluentHelper.ElasticSearch.Common
 
         public async Task<int> BulkAddAsync<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
         {
-            ArgumentNullException.ThrowIfNull(inputList);
-
-            if (!inputList.Any())
-                return 0;
-
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-
-            var groupedInputList = inputList.GroupBy(inputData => GetIndexName(inputData)).Select(x => new
-            {
-                IndexName = x.Key,
-                InputList = x.ToList()
-            });
+            var groupedInputList = PrepareBulkData(inputList);
 
             int totalIndexedElements = 0;
             foreach (var groupedInputData in groupedInputList)
             {
-                int indexedElements = 0;
-
-                try
-                {
-                    while (indexedElements < groupedInputData.InputList.Count)
-                    {
-                        var inputListToAdd = groupedInputData.InputList.Skip(indexedElements).Take(_elasticConfig.BulkInsertChunkSize).ToList();
-                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Indexing {addNumber} elements into {indexName}. {bulkProgress}", [inputListToAdd.Count.ToString(), groupedInputData.IndexName, $"{indexedElements}/{groupedInputData.InputList}"]);
-
-                        var bulkResponse = await GetOrCreateClient().BulkAsync(b => b.Index(groupedInputData.IndexName).IndexMany(inputListToAdd)).ConfigureAwait(false);
-                        AfterQueryResponse(bulkResponse);
-
-                        if (bulkResponse == null || !bulkResponse.IsValidResponse || bulkResponse.Errors)
-                            throw new InvalidOperationException("Could not bulkadd data", new Exception(JsonConvert.SerializeObject(bulkResponse)));
-
-                        _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Added {addNumber} to {indexName}", [inputListToAdd.Count.ToString(), groupedInputData.IndexName]);
-                        indexedElements += inputListToAdd.Count;
-                        totalIndexedElements += indexedElements;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, ex, "Could not BulkAdd some data on index {indexName}", [groupedInputData.IndexName]);
-                }
-                finally
-                {
-                    _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "BulkAdded {bulkProgress} to {indexName}", [$"{indexedElements}/{groupedInputData.InputList.Count}", groupedInputData.IndexName]);
-                }
+                var bulkResponse = await GetOrCreateClient().BulkAsync(b => b.Index(groupedInputData.IndexName).IndexMany(groupedInputData.Items)).ConfigureAwait(false);
+                int addedItems = CheckBulkAddResponse(bulkResponse, groupedInputData.Items.Count, groupedInputData.IndexName);
+                totalIndexedElements += addedItems;
             }
 
             return totalIndexedElements;
         }
 
+        private List<(string IndexName, List<TEntity> Items)> PrepareBulkData<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
+        {
+            if (!inputList.Any())
+                return [];
+
+            List<(string indexName, List<TEntity> Items)> preparedBulk = [];
+
+            var groupedInput = inputList.GroupBy(inputData => GetIndexName(inputData, out _)).Select(x =>
+            {
+                (string IndexName, List<TEntity> Items) tuple = new(x.Key, x.ToList());
+                return tuple;
+            });
+
+            foreach (var itemToSplit in groupedInput.Where(x => x.Items.Count > _elasticConfig.BulkInsertChunkSize))
+            {
+                if (itemToSplit.Items.Count <= _elasticConfig.BulkInsertChunkSize)
+                {
+                    preparedBulk.Add(itemToSplit);
+                    continue;
+                }
+
+                for (var i = 0; i < itemToSplit.Items.Count; i += _elasticConfig.BulkInsertChunkSize)
+                {
+                    var splittedItems = itemToSplit.Items.GetRange(i, Math.Min(_elasticConfig.BulkInsertChunkSize, itemToSplit.Items.Count - i));
+
+                    (string indexName, List<TEntity>) splittedTuple = new(itemToSplit.IndexName, splittedItems);
+                    preparedBulk.Add(splittedTuple);
+                }
+            }
+
+            return preparedBulk;
+        }
+
+        private int CheckBulkAddResponse(BulkResponse bulkResponse, int addNumber, string indexName)
+        {
+            AfterQueryResponse(bulkResponse);
+
+            if (!bulkResponse.IsValidResponse || bulkResponse.Errors)
+            {
+                bulkResponse.TryGetOriginalException(out Exception? exception);
+                _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, exception, "Could not BulkAdd some data on index {indexName}", [indexName]);
+                return 0;
+            }
+
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Added {addNumber} to {indexName}", [addNumber, indexName]);
+            return addNumber;
+        }
+
         public void AddOrUpdate<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts = 0) where TEntity : class
         {
-            ArgumentNullException.ThrowIfNull(inputData);
-            ArgumentNullException.ThrowIfNull(fieldUpdaterExpr);
-
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexName = GetIndexName(inputData);
-
-            var elasticFieldUpdater = fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName));
-            var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
-
-            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
-            var updateResponse = GetOrCreateClient().Update<TEntity, ExpandoObject>(indexName, inputId!.ToString()!, x => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts));
-            AfterQueryResponse(updateResponse);
-
-            if (updateResponse == null || !updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
-                throw new InvalidOperationException("Could not update data", new Exception(JsonConvert.SerializeObject(updateResponse)));
-
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), indexName]);
+            var addOrUpdateParameters = GetAddOrUpdatedParameters(inputData, fieldUpdaterExpr, retryOnConflicts);
+            var updateResponse = GetOrCreateClient().Update(addOrUpdateParameters.IndexName, addOrUpdateParameters.Id, addOrUpdateParameters.ConfigureRequest);
+            CheckUpdateResponse(inputData, updateResponse);
         }
 
         public async Task AddOrUpdateAsync<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts = 0) where TEntity : class
         {
-            ArgumentNullException.ThrowIfNull(inputData);
-            ArgumentNullException.ThrowIfNull(fieldUpdaterExpr);
+            var addOrUpdateParameters = GetAddOrUpdatedParameters(inputData, fieldUpdaterExpr, retryOnConflicts);
+            var updateResponse = await GetOrCreateClient().UpdateAsync(addOrUpdateParameters.IndexName, addOrUpdateParameters.Id, addOrUpdateParameters.ConfigureRequest).ConfigureAwait(false);
+            CheckUpdateResponse(inputData, updateResponse);
+        }
 
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexName = GetIndexName(inputData);
+        private (string IndexName, Id Id, Action<UpdateRequestDescriptor<TEntity, ExpandoObject>> ConfigureRequest) GetAddOrUpdatedParameters<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts) where TEntity : class
+        {
+            string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
+
+            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
             var elasticFieldUpdater = fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName));
             var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
+            Action<UpdateRequestDescriptor<TEntity, ExpandoObject>> configureRequest = x => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts);
 
-            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
-            var updateResponse = await GetOrCreateClient().UpdateAsync<TEntity, ExpandoObject>(indexName, inputId!.ToString()!, x => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts)).ConfigureAwait(false);
+            return new(indexName, inputId!.ToString()!, configureRequest);
+        }
+
+        private void CheckUpdateResponse<TEntity>(TEntity inputData, UpdateResponse<TEntity> updateResponse) where TEntity : class
+        {
             AfterQueryResponse(updateResponse);
 
             if (updateResponse == null || !updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
                 throw new InvalidOperationException("Could not update data", new Exception(JsonConvert.SerializeObject(updateResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), indexName]);
+            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), updateResponse.Index]);
         }
 
         public IEnumerable<TEntity> Query<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
@@ -349,8 +319,7 @@ namespace FluentHelper.ElasticSearch.Common
         {
             ArgumentNullException.ThrowIfNull(inputData);
 
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexName = GetIndexName(inputData);
+            string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
             var deleteResponse = GetOrCreateClient().Delete<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True));
@@ -364,10 +333,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         public async Task DeleteAsync<TEntity>(TEntity inputData) where TEntity : class
         {
-            ArgumentNullException.ThrowIfNull(inputData);
-
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-            string indexName = GetIndexName(inputData);
+            string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
             var deleteResponse = await GetOrCreateClient().DeleteAsync<TEntity>(indexName, inputId!.ToString()!, r => r.Refresh(Refresh.True)).ConfigureAwait(false);
@@ -379,9 +345,9 @@ namespace FluentHelper.ElasticSearch.Common
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), indexName]);
         }
 
-        public string GetIndexName<TEntity>(TEntity inputData) where TEntity : class
+        public string GetIndexName<TEntity>(TEntity inputData, out ElasticMap<TEntity> mapInstance) where TEntity : class
         {
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
+            mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = string.IsNullOrWhiteSpace(_elasticConfig.IndexPrefix) ? $"{mapInstance.BaseIndexName}" : $"{_elasticConfig.IndexPrefix}-{mapInstance.BaseIndexName}";
 
             if (!string.IsNullOrWhiteSpace(_elasticConfig.IndexSuffix))

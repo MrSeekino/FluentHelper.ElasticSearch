@@ -21,7 +21,7 @@ namespace FluentHelper.ElasticSearch.Common
         public string IndexPrefix { get; set; } = string.Empty;
         public string IndexSuffix { get; set; } = string.Empty;
 
-        public Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, string?[]>? LogAction { get; set; }
+        public Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, object?[]>? LogAction { get; set; }
 
         public List<Assembly> MappingAssemblies { get; set; } = [];
     }

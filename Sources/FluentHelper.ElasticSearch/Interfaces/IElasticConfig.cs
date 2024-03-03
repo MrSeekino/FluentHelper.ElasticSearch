@@ -20,7 +20,7 @@ namespace FluentHelper.ElasticSearch.Interfaces
         string IndexPrefix { get; }
         string IndexSuffix { get; }
 
-        Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, string?[]>? LogAction { get; }
+        Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, object?[]>? LogAction { get; }
 
         List<Assembly> MappingAssemblies { get; }
     }

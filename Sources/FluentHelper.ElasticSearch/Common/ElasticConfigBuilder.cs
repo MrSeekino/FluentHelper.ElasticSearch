@@ -22,7 +22,7 @@ namespace FluentHelper.ElasticSearch.Common
         private string _indexPrefix;
         private string _indexSuffix;
 
-        private Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, string?[]>? _logAction;
+        private Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, object?[]>? _logAction;
 
         private readonly List<Assembly> _mappingAssemblies;
 
@@ -124,7 +124,7 @@ namespace FluentHelper.ElasticSearch.Common
             return this;
         }
 
-        public ElasticConfigBuilder WithLogAction(Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, string?[]> logAction)
+        public ElasticConfigBuilder WithLogAction(Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, object?[]> logAction)
         {
             _logAction = logAction;
             return this;

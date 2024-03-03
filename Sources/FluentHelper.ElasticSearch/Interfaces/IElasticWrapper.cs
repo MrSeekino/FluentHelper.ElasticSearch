@@ -1,4 +1,5 @@
 ﻿using Elastic.Clients.Elasticsearch;
+using FluentHelper.ElasticSearch.Common;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -24,7 +25,7 @@ namespace FluentHelper.ElasticSearch.Interfaces
         void Delete<TEntity>(TEntity inputData) where TEntity : class;
         Task DeleteAsync<TEntity>(TEntity inputData) where TEntity : class;
 
-        string GetIndexName<TEntity>(TEntity inputData) where TEntity : class;
+        string GetIndexName<TEntity>(TEntity inputData, out ElasticMap<TEntity> mapInstance) where TEntity : class;
         string GetIndexNamesForQueries<TEntity>(object? baseObjectFilter) where TEntity : class;
     }
 }
