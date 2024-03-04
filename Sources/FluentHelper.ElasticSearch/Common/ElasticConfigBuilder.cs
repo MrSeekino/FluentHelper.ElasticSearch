@@ -81,6 +81,8 @@ namespace FluentHelper.ElasticSearch.Common
 
         public ElasticConfigBuilder WithRequestTimeout(TimeSpan timeoutValue)
         {
+            ArgumentOutOfRangeException.ThrowIfLessThan(timeoutValue.TotalSeconds, 1);
+
             _requestTimeout = timeoutValue;
             return this;
         }
@@ -100,6 +102,8 @@ namespace FluentHelper.ElasticSearch.Common
 
         public ElasticConfigBuilder WithBulkInsertChunkSize(int chunkSize)
         {
+            ArgumentOutOfRangeException.ThrowIfLessThan(chunkSize, 1);
+
             _bulkInsertChunkSize = chunkSize;
             return this;
         }

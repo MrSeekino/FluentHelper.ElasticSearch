@@ -145,7 +145,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
             elasticConfig.EnableDebug.Returns(true);
-            elasticConfig.CertificateFingerprint.Returns("");
+            elasticConfig.CertificateFingerprint.Returns("ABCDE");
             elasticConfig.BasicAuthentication.Returns(basicAuth);
             elasticConfig.RequestTimeout.Returns(TimeSpan.FromSeconds(60));
             elasticConfig.LogAction.Returns((x, y, z, k) => { logActionCalled = true; });
@@ -241,6 +241,35 @@ namespace FluentHelper.ElasticSearch.Tests
             });
 
             await esWrapper.AddAsync(testData);
+        }
+
+        [Test]
+        public void Verify_Add_ThrowsWithInvalidResponse()
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new IndexResponse { };
+            var mockedResponse = TestableResponseFactory.CreateResponse(response, 400, false);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Index(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            Assert.Throws<InvalidOperationException>(() => esWrapper.Add(testData));
         }
 
         [Test]
@@ -346,6 +375,133 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
+        public void Verify_BulkAdd_DoesNothingWithEmptyList()
+        {
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+            elasticConfig.LogAction.Returns((logLevel, ex, message, args) => { });
+
+            var response = new BulkResponse { Errors = false };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            int totalAddedElements = esWrapper.BulkAdd<TestEntity>([]);
+            esClient.DidNotReceive().Bulk(Arg.Any<Action<BulkRequestDescriptor>>());
+            Assert.That(totalAddedElements, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Verify_BulkAdd_WorksCorrectly_WithASingleBulk()
+        {
+            List<TestEntity> dataList = new()
+            {
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test01",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test02",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test03",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                }
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+            elasticConfig.BulkInsertChunkSize.Returns(10);
+
+            var response = new BulkResponse { Errors = false };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            int totalAddedElements = esWrapper.BulkAdd(dataList);
+            esClient.Received(1).Bulk(Arg.Any<Action<BulkRequestDescriptor>>());
+            Assert.That(totalAddedElements, Is.EqualTo(dataList.Count));
+        }
+
+        [Test]
+        public void Verify_BulkAdd_DoesNothingWithInvalidResponse()
+        {
+            List<TestEntity> dataList = new()
+            {
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test01",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test02",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test03",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                }
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+            elasticConfig.BulkInsertChunkSize.Returns(2);
+            elasticConfig.LogAction.Returns((logLevel, ex, message, args) => { });
+
+            var response = new BulkResponse { Errors = true };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            int totalAddedElements = esWrapper.BulkAdd(dataList);
+            elasticConfig.Received(4).LogAction!(Microsoft.Extensions.Logging.LogLevel.Error, Arg.Any<Exception?>(), Arg.Any<string>(), Arg.Any<object?[]>());
+            esClient.Received(2).Bulk(Arg.Any<Action<BulkRequestDescriptor>>());
+            Assert.That(totalAddedElements, Is.EqualTo(0));
+        }
+
+        [Test]
         public void Verify_Delete_WorksCorrectly()
         {
             var testData = new TestEntity
@@ -422,6 +578,37 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
+        public void Verify_Delete_ThrowsWithInvalidResponse()
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new DeleteResponse { Result = Result.NotFound };
+            var mockedResponse = TestableResponseFactory.CreateResponse(response, 404, false);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+
+            esClient.Delete(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<DeleteRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
+
+            Assert.Throws<InvalidOperationException>(() => esWrapper.Delete(testData));
+        }
+
+        [Test]
         public void Verify_AddOrUpdate_WorksCorrectly()
         {
             var testData = new TestEntity
@@ -495,6 +682,44 @@ namespace FluentHelper.ElasticSearch.Tests
             });
 
             await esWrapper.AddOrUpdateAsync(testData, x => x.Update(f => f.Name).Update(f => f.Active), 1);
+        }
+
+        [Test]
+        public void Verify_AddOrUpdate_ThrowsWithInvalidResponse()
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test01",
+                GroupName = "Group01",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new UpdateResponse<TestEntity> { Result = Result.NoOp };
+            var mockedResponse = TestableResponseFactory.CreateResponse(response, 400, false);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+
+            esClient.Update(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<UpdateRequestDescriptor<TestEntity, ExpandoObject>>>()).Returns(mockedResponse).AndDoes(x =>
+            {
+                var idToUpdate = x.Arg<Id>();
+                var indexUsed = x.Arg<IndexName>();
+
+                Assert.That(idToUpdate.ToString(), Is.EqualTo(testData.Id.ToString()));
+                Assert.That(indexUsed, Is.EqualTo(indexName));
+            });
+
+            Assert.Throws<InvalidOperationException>(() => esWrapper.AddOrUpdate(testData, x => x.Update(f => f.Name).Update(f => f.Active), 1));
         }
 
         [Test]
@@ -632,6 +857,67 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
+        public void Verify_Query_ThrowsWithInvalidResponse()
+        {
+            List<TestEntity> dataList = new()
+            {
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test01",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test02",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test03",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                }
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new SearchResponse<TestEntity>
+            {
+                HitsMetadata = new HitsMetadata<TestEntity>()
+                {
+                    Hits = [],
+                    Total = new TotalHits() { Value = 0 }
+                }
+            };
+            var mockedResponse = TestableResponseFactory.CreateResponse(response, 400, false);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Search(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var esQueryParameters = new ElasticQueryParameters<TestEntity>
+            {
+                Skip = 0,
+                Take = 10
+            };
+
+            Assert.Throws<InvalidOperationException>(() => esWrapper.Query(null, esQueryParameters));
+        }
+
+        [Test]
         public void Verify_Count_WorksCorrectly()
         {
             var elasticMap = new TestEntityMap();
@@ -677,6 +963,27 @@ namespace FluentHelper.ElasticSearch.Tests
 
             await esClient.Received(1).CountAsync(Arg.Any<CountRequestDescriptor<TestEntity>>());
             Assert.That(totalItems, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void Verify_Count_ThrowsWithInvalidResponse()
+        {
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new CountResponse { Count = 0 };
+            var mockedResponse = TestableResponseFactory.CreateResponse(response, 400, false);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Count(Arg.Any<CountRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esQueryParameters = new ElasticQueryParameters<TestEntity>();
+
+            Assert.Throws<InvalidOperationException>(() => esWrapper.Count(null, esQueryParameters));
         }
     }
 }

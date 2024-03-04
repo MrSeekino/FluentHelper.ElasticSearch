@@ -134,6 +134,13 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
+        public void Verify_WithRequestTimeout_ThrowsWhenChunkIsLessThanOneSecond()
+        {
+            var elasticConfigBuilder = ElasticConfigBuilder.Create();
+            Assert.Throws<ArgumentOutOfRangeException>(() => elasticConfigBuilder.WithRequestTimeout(TimeSpan.FromMilliseconds(10)));
+        }
+
+        [Test]
         public void Verify_WithDebugEnabled_WorksCorrectly()
         {
             var elasticConfigBuilder = ElasticConfigBuilder.Create()
@@ -166,6 +173,13 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(elasticConfig, Is.Not.Null);
             Assert.That(elasticConfig.BulkInsertChunkSize, Is.Not.Null);
             Assert.That(elasticConfig.BulkInsertChunkSize, Is.EqualTo(200));
+        }
+
+        [Test]
+        public void Verify_WithBulkInsertChunkSize_ThrowsWhenChunkIsLessThanOne()
+        {
+            var elasticConfigBuilder = ElasticConfigBuilder.Create();
+            Assert.Throws<ArgumentOutOfRangeException>(() => elasticConfigBuilder.WithBulkInsertChunkSize(0));
         }
 
         [Test]

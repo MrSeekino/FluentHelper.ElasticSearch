@@ -7,7 +7,7 @@ namespace FluentHelper.ElasticSearch.Tests
     public class ElasticMapTests
     {
         [Test]
-        public void Verify_MapVerificationThrowsWhenIdPropertyIsNotSet()
+        public void Verify_MapVerification_ThrowsWhenIdPropertyIsNotSet()
         {
             var testEntityMap = new TestEntityMap();
             Assert.Throws<InvalidOperationException>(testEntityMap.Verify);
