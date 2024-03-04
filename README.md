@@ -8,7 +8,7 @@ It provides some simple interfaces and methods that allows you to make mappings 
 ![Build & Tests](https://github.com/MrSeekino/FluentHelper.ElasticSearch/actions/workflows/dotnet.yml/badge.svg)
 
 ### SonarCloud Scan
-[![SonarCloud](https://sonarcloud.io/images/project_badges/sonarcloud-white.svg)](https://sonarcloud.io/summary/new_code?id=MrSeekino_FluentHelper.ElasticSearch)
+[![SonarCloud](https://sonarcloud.io/images/project_badges/sonarcloud-white.svg)](https://sonarcloud.io/project/overview?id=MrSeekino_FluentHelper.ElasticSearch)
 
 ## Latest Version
 The best and quickest way to get the latest release of FluentHelper.ElasticSearch is to add it to your project using 
