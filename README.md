@@ -7,6 +7,9 @@ It provides some simple interfaces and methods that allows you to make mappings 
 ### Build & Tests Status
 ![Build & Tests](https://github.com/MrSeekino/FluentHelper.ElasticSearch/actions/workflows/dotnet.yml/badge.svg)
 
+### SonarCloud Scan
+[![SonarCloud](https://sonarcloud.io/images/project_badges/sonarcloud-white.svg)](https://sonarcloud.io/summary/new_code?id=MrSeekino_FluentHelper.ElasticSearch)
+
 ## Latest Version
 The best and quickest way to get the latest release of FluentHelper.ElasticSearch is to add it to your project using 
 NuGet (https://www.nuget.org/packages/FluentHelper.ElasticSearch)
@@ -18,3 +21,6 @@ If you find any bugs, please report them using the [GitHub issue tracker](https:
 
 ## Licenses
 This software is distributed under the terms of the [MIT License](LICENSE).
+
+## Examples
+Example projects that uses FluentHelper.EntityFrameworkCore can be found under the [Examples](https://github.com/MrSeekino/FluentHelper.ElasticSearch/tree/master/Examples) folder in current repository.
