@@ -21,3 +21,6 @@ If you find any bugs, please report them using the [GitHub issue tracker](https:
 
 ## Licenses
 This software is distributed under the terms of the [MIT License](LICENSE).
+
+## Examples
+Example projects that uses FluentHelper.EntityFrameworkCore can be found under the [Examples](https://github.com/MrSeekino/FluentHelper.ElasticSearch/tree/master/Examples) folder in current repository.
