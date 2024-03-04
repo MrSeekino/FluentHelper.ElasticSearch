@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace FluentHelper.ElasticSearch.Interfaces
+namespace FluentHelper.ElasticSearch.IndexCalculators
 {
     public interface IElasticIndexCalculator<TEntity>
     {

@@ -2,7 +2,7 @@
 using Elastic.Clients.Elasticsearch.Core.Search;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 
-namespace FluentHelper.ElasticSearch.Interfaces
+namespace FluentHelper.ElasticSearch.QueryParameters
 {
     public interface IElasticQueryParameters<TEntity> where TEntity : class
     {

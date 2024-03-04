@@ -9,14 +9,19 @@ namespace FluentHelper.ElasticSearch.Common
     public abstract class ElasticMap<TEntity> : IElasticMap where TEntity : class
     {
         public string BaseIndexName { get; private set; }
-        public IElasticIndexCalculator<TEntity> IndexCalculator { get; private set; }
+        public IElasticIndexCalculator<TEntity>? IndexCalculator { get; private set; }
         public string IdPropertyName { get; private set; }
 
         protected ElasticMap()
         {
-            BaseIndexName = typeof(TEntity).Name;
-            IndexCalculator = new BasicIndexCalculator<TEntity>();
+            BaseIndexName = string.Empty;
+            IndexCalculator = null;
             IdPropertyName = string.Empty;
+        }
+
+        protected void SetBaseIndexName(string baseIndexName)
+        {
+            BaseIndexName = baseIndexName;
         }
 
         protected void SetIndexCalculator(IElasticIndexCalculator<TEntity> indexCalculator)
@@ -24,9 +29,20 @@ namespace FluentHelper.ElasticSearch.Common
             IndexCalculator = indexCalculator;
         }
 
-        protected void SetBaseIndexName(string baseIndexName)
+        protected void SetCustomIndexCalculator<TFilter>(Action<ICustomIndexCalculator<TEntity, TFilter>> customIndexCalculator)
         {
-            BaseIndexName = baseIndexName;
+            var indexCalculator = CustomIndexCalculator<TEntity, TFilter>.Create();
+            customIndexCalculator(indexCalculator);
+
+            IndexCalculator = indexCalculator;
+        }
+
+        protected void SetBasicIndexCalculator(Action<IBasicIndexCalculator<TEntity>> basicIndexCalculator)
+        {
+            var indexCalculator = BasicIndexCalculator<TEntity>.Create();
+            basicIndexCalculator(indexCalculator);
+
+            IndexCalculator = indexCalculator;
         }
 
         protected void Id<P>(Expression<Func<TEntity, P>> expression)
@@ -49,6 +65,12 @@ namespace FluentHelper.ElasticSearch.Common
 
         public void Verify()
         {
+            if (string.IsNullOrWhiteSpace(BaseIndexName))
+                throw new InvalidOperationException($"BaseIndexName has not been set for {typeof(TEntity).Name}");
+
+            if (IndexCalculator == null)
+                throw new InvalidOperationException($"IndexCalculator has not been set for {typeof(TEntity).Name}");
+
             if (string.IsNullOrWhiteSpace(IdPropertyName))
                 throw new InvalidOperationException($"IdProperty has not been set for {typeof(TEntity).Name}");
         }

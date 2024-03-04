@@ -1,16 +1,27 @@
-﻿using FluentHelper.ElasticSearch.Interfaces;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace FluentHelper.ElasticSearch.IndexCalculators
 {
-    public sealed class BasicIndexCalculator<T> : IElasticIndexCalculator<T>
+    internal sealed class BasicIndexCalculator<T> : IBasicIndexCalculator<T>
     {
-        readonly bool _fixedIndex;
+        bool _fixedIndex;
 
-        public BasicIndexCalculator(bool fixedIndex = false)
+        private BasicIndexCalculator()
+        { }
+
+        public static IBasicIndexCalculator<T> Create()
         {
-            _fixedIndex = fixedIndex;
+            return new BasicIndexCalculator<T>()
+            {
+                _fixedIndex = false
+            };
+        }
+
+        public IBasicIndexCalculator<T> WithFixedIndexName()
+        {
+            _fixedIndex = true;
+            return this;
         }
 
         public string CalcEntityIndex(T input)

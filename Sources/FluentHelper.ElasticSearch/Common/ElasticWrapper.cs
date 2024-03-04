@@ -1,6 +1,4 @@
 ﻿using Elastic.Clients.Elasticsearch;
-using Elastic.Clients.Elasticsearch.Core.Bulk;
-using Elastic.Clients.Elasticsearch.Core.Reindex;
 using Elastic.Transport;
 using Elastic.Transport.Products.Elasticsearch;
 using FluentHelper.ElasticSearch.Interfaces;
@@ -11,6 +9,7 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 [assembly: InternalsVisibleTo("FluentHelper.ElasticSearch.Tests")]
@@ -83,9 +82,9 @@ namespace FluentHelper.ElasticSearch.Common
             CheckAddResponse(inputData, addResponse);
         }
 
-        public async Task AddAsync<TEntity>(TEntity inputData) where TEntity : class
+        public async Task AddAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class
         {
-            var addResponse = await GetOrCreateClient().IndexAsync(inputData, GetIndexName(inputData, out _));
+            var addResponse = await GetOrCreateClient().IndexAsync(inputData, GetIndexName(inputData, out _), cancellationToken);
             CheckAddResponse(inputData, addResponse);
         }
 
@@ -114,14 +113,14 @@ namespace FluentHelper.ElasticSearch.Common
             return totalIndexedElements;
         }
 
-        public async Task<int> BulkAddAsync<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
+        public async Task<int> BulkAddAsync<TEntity>(IEnumerable<TEntity> inputList, CancellationToken cancellationToken = default) where TEntity : class
         {
             var groupedInputList = PrepareBulkData(inputList);
 
             int totalIndexedElements = 0;
             foreach (var groupedInputData in groupedInputList)
             {
-                var bulkResponse = await GetOrCreateClient().BulkAsync(b => b.Index(groupedInputData.IndexName).IndexMany(groupedInputData.Items)).ConfigureAwait(false);
+                var bulkResponse = await GetOrCreateClient().BulkAsync(b => b.Index(groupedInputData.IndexName).IndexMany(groupedInputData.Items), cancellationToken).ConfigureAwait(false);
                 int addedItems = CheckBulkAddResponse(bulkResponse, groupedInputData.Items.Count, groupedInputData.IndexName);
                 totalIndexedElements += addedItems;
             }
@@ -184,10 +183,13 @@ namespace FluentHelper.ElasticSearch.Common
             CheckUpdateResponse(inputData, updateResponse);
         }
 
-        public async Task AddOrUpdateAsync<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts = 0) where TEntity : class
+        public async Task AddOrUpdateAsync<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, CancellationToken cancellationToken = default) where TEntity : class
+            => await AddOrUpdateAsync(inputData, fieldUpdaterExpr, 0, cancellationToken);
+
+        public async Task AddOrUpdateAsync<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts, CancellationToken cancellationToken = default) where TEntity : class
         {
             var addOrUpdateParameters = GetAddOrUpdatedParameters(inputData, fieldUpdaterExpr, retryOnConflicts);
-            var updateResponse = await GetOrCreateClient().UpdateAsync(addOrUpdateParameters.IndexName, addOrUpdateParameters.Id, addOrUpdateParameters.ConfigureRequest).ConfigureAwait(false);
+            var updateResponse = await GetOrCreateClient().UpdateAsync(addOrUpdateParameters.IndexName, addOrUpdateParameters.Id, addOrUpdateParameters.ConfigureRequest, cancellationToken).ConfigureAwait(false);
             CheckUpdateResponse(inputData, updateResponse);
         }
 
@@ -221,10 +223,10 @@ namespace FluentHelper.ElasticSearch.Common
             return CheckSearchResponse(queryResponse);
         }
 
-        public async Task<IEnumerable<TEntity>> QueryAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        public async Task<IEnumerable<TEntity>> QueryAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters, CancellationToken cancellationToken = default) where TEntity : class
         {
             var searchDescriptor = GetSearchRequestDescriptor(baseObjectFilter, queryParameters);
-            var queryResponse = await GetOrCreateClient().SearchAsync(searchDescriptor).ConfigureAwait(false);
+            var queryResponse = await GetOrCreateClient().SearchAsync(searchDescriptor, cancellationToken).ConfigureAwait(false);
             return CheckSearchResponse(queryResponse);
         }
 
@@ -270,10 +272,10 @@ namespace FluentHelper.ElasticSearch.Common
             return CheckCountResponse(countResponse);
         }
 
-        public async Task<long> CountAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        public async Task<long> CountAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters, CancellationToken cancellationToken = default) where TEntity : class
         {
             var countDescriptor = GetCountRequestDescriptor(baseObjectFilter, queryParameters);
-            var countResponse = await GetOrCreateClient().CountAsync(countDescriptor).ConfigureAwait(false);
+            var countResponse = await GetOrCreateClient().CountAsync(countDescriptor, cancellationToken).ConfigureAwait(false);
             return CheckCountResponse(countResponse);
         }
 
@@ -308,10 +310,10 @@ namespace FluentHelper.ElasticSearch.Common
             CheckDeleteResponse(inputData, deleteResponse);
         }
 
-        public async Task DeleteAsync<TEntity>(TEntity inputData) where TEntity : class
+        public async Task DeleteAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class
         {
             var deleteParameters = GetDeleteParameters(inputData);
-            var deleteResponse = await GetOrCreateClient().DeleteAsync<TEntity>(deleteParameters.IndexName, deleteParameters.Id, r => r.Refresh(Refresh.True)).ConfigureAwait(false);
+            var deleteResponse = await GetOrCreateClient().DeleteAsync<TEntity>(deleteParameters.IndexName, deleteParameters.Id, r => r.Refresh(Refresh.True), cancellationToken).ConfigureAwait(false);
             CheckDeleteResponse(inputData, deleteResponse);
         }
 

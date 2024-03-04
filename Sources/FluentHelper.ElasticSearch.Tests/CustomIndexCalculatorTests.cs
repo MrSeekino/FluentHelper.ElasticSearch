@@ -8,11 +8,15 @@ namespace FluentHelper.ElasticSearch.Tests
     [TestFixture]
     public class CustomIndexCalculatorTests
     {
-        readonly CustomIndexCalculator<TestEntity, DateTime[]> _customIndexCalculator;
+        readonly ICustomIndexCalculator<TestEntity, DateTime[]> _customIndexCalculator;
 
         public CustomIndexCalculatorTests()
         {
-            _customIndexCalculator = new CustomIndexCalculator<TestEntity, DateTime[]>(entity => $"{entity.CreationTime:yyyy.MM.dd}", filter =>
+            _customIndexCalculator = CustomIndexCalculator<TestEntity, DateTime[]>.Create();
+
+            _customIndexCalculator.WithPostfixByEntity(entity => $"{entity.CreationTime:yyyy.MM.dd}");
+
+            _customIndexCalculator.WithPostfixByFilter(filter =>
             {
                 if (filter == null)
                     return null;
@@ -46,7 +50,7 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void CalcQueryIndex_When_FilterIsValid_Returns_ValidListOfIndexes()
         {
-            DateTime[] filter = new DateTime[2] { new DateTime(2023, 12, 1), new DateTime(2024, 1, 1) };
+            DateTime[] filter = [new DateTime(2023, 12, 1), new DateTime(2024, 1, 1)];
 
             var queryIndexes = _customIndexCalculator.CalcQueryIndex(filter);
             ClassicAssert.IsNotNull(queryIndexes);
@@ -68,7 +72,7 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void CalcQueryIndex_When_FilterIsInvalid_Throws()
         {
-            int[] badFilter = new int[1] { 12 };
+            int[] badFilter = [12];
 
             Assert.Throws<InvalidCastException>(() => _customIndexCalculator.CalcQueryIndex(badFilter));
         }

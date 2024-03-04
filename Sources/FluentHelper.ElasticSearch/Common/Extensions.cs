@@ -1,4 +1,4 @@
-﻿using FluentHelper.ElasticSearch.Interfaces;
+﻿using FluentHelper.ElasticSearch.QueryParameters;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

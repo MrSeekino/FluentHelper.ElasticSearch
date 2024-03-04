@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-namespace FluentHelper.ElasticSearch.Interfaces
+namespace FluentHelper.ElasticSearch.QueryParameters
 {
     public interface IElasticFieldUpdater<TEntity>
     {

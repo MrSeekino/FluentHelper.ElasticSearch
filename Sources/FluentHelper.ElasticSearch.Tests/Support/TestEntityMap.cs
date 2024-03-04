@@ -1,5 +1,4 @@
 ﻿using FluentHelper.ElasticSearch.Common;
-using FluentHelper.ElasticSearch.IndexCalculators;
 
 namespace FluentHelper.ElasticSearch.Tests.Support
 {
@@ -9,24 +8,29 @@ namespace FluentHelper.ElasticSearch.Tests.Support
         {
             SetBaseIndexName("testentity");
 
-            SetIndexCalculator(new CustomIndexCalculator<TestEntity, TestFilter>(x => $"{x.GroupName}-{x.CreationTime:yyyy.MM.dd}", filter =>
+            SetCustomIndexCalculator<TestFilter>(c =>
             {
-                if (filter == null)
-                    return null;
+                c.WithPostfixByEntity(x => $"{x.GroupName}-{x.CreationTime:yyyy.MM.dd}");
 
-                if (filter != null && filter.StartTime.HasValue && filter.EndTime.HasValue)
+                c.WithPostfixByFilter(filter =>
                 {
-                    List<string> indexNames = new();
+                    if (filter == null)
+                        return null;
 
-                    int daysDelay = (int)(filter.EndTime.Value - filter.StartTime.Value).TotalDays + 1;
-                    for (int i = 0; i < daysDelay; i++)
-                        indexNames.Add($"{filter.GroupName}-{filter!.StartTime.Value.AddDays(i):yyyy.MM.dd}");
+                    if (filter != null && filter.StartTime.HasValue && filter.EndTime.HasValue)
+                    {
+                        List<string> indexNames = new();
 
-                    return indexNames;
-                }
+                        int daysDelay = (int)(filter.EndTime.Value - filter.StartTime.Value).TotalDays + 1;
+                        for (int i = 0; i < daysDelay; i++)
+                            indexNames.Add($"{filter.GroupName}-{filter!.StartTime.Value.AddDays(i):yyyy.MM.dd}");
 
-                return null;
-            }));
+                        return indexNames;
+                    }
+
+                    return null;
+                });
+            });
 
             Id(e => e.Id);
         }
