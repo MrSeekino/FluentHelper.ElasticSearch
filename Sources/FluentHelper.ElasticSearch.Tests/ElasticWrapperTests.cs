@@ -46,7 +46,7 @@ namespace FluentHelper.ElasticSearch.Tests
             if (!string.IsNullOrWhiteSpace(suffix))
                 expectedIndexName += $"{suffix}-";
 
-            expectedIndexName += testEntityMap.IndexCalculator.CalcEntityIndex(testEntityInstance);
+            expectedIndexName += testEntityMap.IndexCalculator.GetIndexPostfixByEntity(testEntityInstance);
             expectedIndexName = expectedIndexName.ToLower();
 
             string indexName = elasticWrapper.GetIndexName(testEntityInstance, out _);
@@ -89,7 +89,7 @@ namespace FluentHelper.ElasticSearch.Tests
             if (!string.IsNullOrWhiteSpace(suffix))
                 fixedIndexForQuery += $"{suffix}-";
 
-            var queryIndexes = testEntityMap.IndexCalculator.CalcQueryIndex(testFilter);
+            var queryIndexes = testEntityMap.IndexCalculator.GetIndexPostfixByFilter(testFilter);
 
             var indexesForQuery = $"{fixedIndexForQuery}{string.Join($",{fixedIndexForQuery}", queryIndexes)}";
             indexesForQuery = indexesForQuery.ToLower();

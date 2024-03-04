@@ -22,7 +22,7 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var basicIndexCalculator = BasicIndexCalculator<TestEntity>.Create();
 
-            string entityIndex = basicIndexCalculator.CalcEntityIndex(testEntity);
+            string entityIndex = basicIndexCalculator.GetIndexPostfixByEntity(testEntity);
             ClassicAssert.AreEqual(string.Empty, entityIndex);
         }
 
@@ -32,7 +32,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var basicIndexCalculator = BasicIndexCalculator<TestEntity>.Create()
                                             .WithFixedIndexName();
 
-            var queryIndexes = basicIndexCalculator.CalcQueryIndex(null);
+            var queryIndexes = basicIndexCalculator.GetIndexPostfixByFilter(null);
             ClassicAssert.IsNotNull(queryIndexes);
             ClassicAssert.AreEqual(0, queryIndexes.Count());
         }
@@ -42,7 +42,7 @@ namespace FluentHelper.ElasticSearch.Tests
         {
             var basicIndexCalculator = BasicIndexCalculator<TestEntity>.Create();
 
-            var queryIndexes = basicIndexCalculator.CalcQueryIndex(null);
+            var queryIndexes = basicIndexCalculator.GetIndexPostfixByFilter(null);
             ClassicAssert.IsNotNull(queryIndexes);
             ClassicAssert.AreEqual(1, queryIndexes.Count());
             ClassicAssert.AreEqual("*", queryIndexes.First());

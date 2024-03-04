@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace FluentHelper.ElasticSearch.IndexCalculators
 {
@@ -24,17 +23,17 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
             return this;
         }
 
-        public string CalcEntityIndex(T input)
+        public string GetIndexPostfixByEntity(T input)
         {
             return string.Empty;
         }
 
-        public IEnumerable<string> CalcQueryIndex(object? baseObjectFilter)
+        public IEnumerable<string> GetIndexPostfixByFilter(object? baseObjectFilter)
         {
             if (_fixedIndex)
-                return Array.Empty<string>();
+                return [];
 
-            return new List<string>() { "*" };
+            return ["*"];
         }
     }
 }

@@ -5,8 +5,8 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
 {
     internal sealed class CustomIndexCalculator<T, TFilter> : ICustomIndexCalculator<T, TFilter>
     {
-        internal Func<T, string>? GetIndexPostfixByEntity { get; set; }
-        internal Func<TFilter?, IEnumerable<string>?>? GetIndexPostfixByFilter { get; set; }
+        private Func<T, string>? _getIndexPostfixByEntity;
+        private Func<TFilter?, IEnumerable<string>?>? _getIndexPostfixByFilter;
 
         private CustomIndexCalculator()
         { }
@@ -18,29 +18,29 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
 
         public void WithPostfixByEntity(Func<T, string> getIndexPostfixByEntity)
         {
-            GetIndexPostfixByEntity = getIndexPostfixByEntity;
+            _getIndexPostfixByEntity = getIndexPostfixByEntity;
         }
 
         public void WithPostfixByFilter(Func<TFilter?, IEnumerable<string>?> getIndexPostfixByFilter)
         {
-            GetIndexPostfixByFilter = getIndexPostfixByFilter;
+            _getIndexPostfixByFilter = getIndexPostfixByFilter;
         }
 
-        public string CalcEntityIndex(T input)
+        public string GetIndexPostfixByEntity(T input)
         {
-            if (GetIndexPostfixByEntity == null)
+            if (_getIndexPostfixByEntity == null)
                 return string.Empty;
 
-            string indexByEntity = GetIndexPostfixByEntity(input);
+            string indexByEntity = _getIndexPostfixByEntity(input);
             return indexByEntity;
         }
 
-        public IEnumerable<string> CalcQueryIndex(object? baseObjectFilter)
+        public IEnumerable<string> GetIndexPostfixByFilter(object? baseObjectFilter)
         {
-            if (GetIndexPostfixByFilter == null)
+            if (_getIndexPostfixByFilter == null)
                 return ["*"];
 
-            var postFixFilter = GetIndexPostfixByFilter((TFilter?)baseObjectFilter);
+            var postFixFilter = _getIndexPostfixByFilter((TFilter?)baseObjectFilter);
             if (postFixFilter == null)
                 return ["*"];
 

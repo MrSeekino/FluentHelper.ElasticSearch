@@ -343,7 +343,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!string.IsNullOrWhiteSpace(_elasticConfig.IndexSuffix))
                 indexName += $"-{_elasticConfig.IndexSuffix}";
 
-            string indexCalculated = mapInstance.IndexCalculator!.CalcEntityIndex(inputData);
+            string indexCalculated = mapInstance.IndexCalculator!.GetIndexPostfixByEntity(inputData);
             if (!string.IsNullOrWhiteSpace(indexCalculated))
                 indexName += $"-{indexCalculated}";
 
@@ -360,7 +360,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!string.IsNullOrWhiteSpace(_elasticConfig.IndexSuffix))
                 fixedIndexName += $"-{_elasticConfig.IndexSuffix}";
 
-            var indexesToQuery = mapInstance.IndexCalculator!.CalcQueryIndex(baseObjectFilter).Select(x => x.ToLower());
+            var indexesToQuery = mapInstance.IndexCalculator!.GetIndexPostfixByFilter(baseObjectFilter).Select(x => x.ToLower());
 
             string indexNames = indexesToQuery.Any() ? $"{fixedIndexName}-{string.Join($",{fixedIndexName}-".ToLower(), indexesToQuery)}" : fixedIndexName;
             indexNames.ThrowIfIndexInvalid(true);

@@ -8,9 +8,9 @@ namespace FluentHelper.ElasticSearch.Common
 {
     public abstract class ElasticMap<TEntity> : IElasticMap where TEntity : class
     {
-        public string BaseIndexName { get; private set; }
-        public IElasticIndexCalculator<TEntity>? IndexCalculator { get; private set; }
-        public string IdPropertyName { get; private set; }
+        public virtual string BaseIndexName { get; private set; }
+        public virtual IElasticIndexCalculator<TEntity>? IndexCalculator { get; private set; }
+        public virtual string IdPropertyName { get; private set; }
 
         protected ElasticMap()
         {
@@ -29,18 +29,19 @@ namespace FluentHelper.ElasticSearch.Common
             IndexCalculator = indexCalculator;
         }
 
-        protected void SetCustomIndexCalculator<TFilter>(Action<ICustomIndexCalculator<TEntity, TFilter>> customIndexCalculator)
+        public void SetBasicIndexCalculator(Action<IBasicIndexCalculator<TEntity>>? basicIndexCalculator = null)
         {
-            var indexCalculator = CustomIndexCalculator<TEntity, TFilter>.Create();
-            customIndexCalculator(indexCalculator);
+            var indexCalculator = BasicIndexCalculator<TEntity>.Create();
+            if (basicIndexCalculator != null)
+                basicIndexCalculator(indexCalculator);
 
             IndexCalculator = indexCalculator;
         }
 
-        protected void SetBasicIndexCalculator(Action<IBasicIndexCalculator<TEntity>> basicIndexCalculator)
+        protected void SetCustomIndexCalculator<TFilter>(Action<ICustomIndexCalculator<TEntity, TFilter>> customIndexCalculator)
         {
-            var indexCalculator = BasicIndexCalculator<TEntity>.Create();
-            basicIndexCalculator(indexCalculator);
+            var indexCalculator = CustomIndexCalculator<TEntity, TFilter>.Create();
+            customIndexCalculator(indexCalculator);
 
             IndexCalculator = indexCalculator;
         }

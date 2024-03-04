@@ -4,8 +4,8 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
 {
     public interface IElasticIndexCalculator<TEntity>
     {
-        string CalcEntityIndex(TEntity input);
+        string GetIndexPostfixByEntity(TEntity input);
 
-        IEnumerable<string> CalcQueryIndex(object? baseObjectFilter);
+        IEnumerable<string> GetIndexPostfixByFilter(object? baseObjectFilter);
     }
 }
