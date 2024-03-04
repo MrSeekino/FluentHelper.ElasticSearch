@@ -14,6 +14,10 @@ namespace FluentHelper.ElasticSearch.QueryParameters
         private int _skip;
         private int _take;
 
+        /// <summary>
+        /// Create default query parameters
+        /// </summary>
+        /// <returns></returns>
         public static ElasticQueryParametersBuilder<TEntity> Create()
         {
             return new ElasticQueryParametersBuilder<TEntity>()
@@ -26,6 +30,11 @@ namespace FluentHelper.ElasticSearch.QueryParameters
             };
         }
 
+        /// <summary>
+        /// Add QueryDescriptor
+        /// </summary>
+        /// <param name="queryAction">Configuration to apply to QueryDescriptor</param>
+        /// <returns></returns>
         public ElasticQueryParametersBuilder<TEntity> Query(Action<QueryDescriptor<TEntity>> queryAction)
         {
             QueryDescriptor<TEntity> queryDescriptor = new();
@@ -35,12 +44,22 @@ namespace FluentHelper.ElasticSearch.QueryParameters
             return this;
         }
 
+        /// <summary>
+        /// Specify a custom SourceFilter to be used
+        /// </summary>
+        /// <param name="sourceFilter">The SourceFilter intended to be used</param>
+        /// <returns></returns>
         public ElasticQueryParametersBuilder<TEntity> SourceFilter(SourceFilter sourceFilter)
         {
             _sourceFilter = sourceFilter;
             return this;
         }
 
+        /// <summary>
+        /// Exclude a field from returning values. Can be called multiple times to exclude multiple fields
+        /// </summary>
+        /// <param name="field">Field to be excluded</param>
+        /// <returns></returns>
         public ElasticQueryParametersBuilder<TEntity> Exclude(Expression<Func<TEntity, object>> field)
         {
             _sourceFilter ??= new SourceFilter();
@@ -53,6 +72,11 @@ namespace FluentHelper.ElasticSearch.QueryParameters
             return this;
         }
 
+        /// <summary>
+        /// Include a specific field to the returning values. Can be called multiple times to include multiple fields
+        /// </summary>
+        /// <param name="field">Field to be included</param>
+        /// <returns></returns>
         public ElasticQueryParametersBuilder<TEntity> Include(Expression<Func<TEntity, object>> field)
         {
             _sourceFilter ??= new SourceFilter();
@@ -65,6 +89,11 @@ namespace FluentHelper.ElasticSearch.QueryParameters
             return this;
         }
 
+        /// <summary>
+        /// Sort the result using SortOptionsDescriptor
+        /// </summary>
+        /// <param name="sortAction">Configuration to be applied to SortOptionsDescriptor</param>
+        /// <returns></returns>
         public ElasticQueryParametersBuilder<TEntity> Sort(Action<SortOptionsDescriptor<TEntity>> sortAction)
         {
             SortOptionsDescriptor<TEntity> sortOptionsDescriptor = new();
@@ -74,6 +103,12 @@ namespace FluentHelper.ElasticSearch.QueryParameters
             return this;
         }
 
+        /// <summary>
+        /// Sort the result on the specified field with the selected sort order
+        /// </summary>
+        /// <param name="field">The field to sort on</param>
+        /// <param name="sortOrder">The order to sort</param>
+        /// <returns></returns>
         public ElasticQueryParametersBuilder<TEntity> Sort(Expression<Func<TEntity, object>> field, SortOrder sortOrder)
         {
             SortOptionsDescriptor<TEntity> sortOptionsDescriptor = new SortOptionsDescriptor<TEntity>().Field(field, new FieldSort
@@ -85,6 +120,11 @@ namespace FluentHelper.ElasticSearch.QueryParameters
             return this;
         }
 
+        /// <summary>
+        /// Skip the selected number of result. Throws if negative
+        /// </summary>
+        /// <param name="skipValue">number of elements to be skipped</param>
+        /// <returns></returns>
         public ElasticQueryParametersBuilder<TEntity> Skip(int skipValue)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(skipValue);
@@ -93,6 +133,11 @@ namespace FluentHelper.ElasticSearch.QueryParameters
             return this;
         }
 
+        /// <summary>
+        /// Take the selected amount of result. Throws if less than 1
+        /// </summary>
+        /// <param name="takeValue">number of elements to be returned</param>
+        /// <returns></returns>
         public ElasticQueryParametersBuilder<TEntity> Take(int takeValue)
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(takeValue, 1);
@@ -101,6 +146,10 @@ namespace FluentHelper.ElasticSearch.QueryParameters
             return this;
         }
 
+        /// <summary>
+        /// Build the query parameters
+        /// </summary>
+        /// <returns></returns>
         public IElasticQueryParameters<TEntity> Build()
         {
             return new ElasticQueryParameters<TEntity>

@@ -44,30 +44,66 @@ namespace FluentHelper.ElasticSearch.Common
         public static ElasticConfigBuilder Create()
             => new ElasticConfigBuilder();
 
+        /// <summary>
+        /// Specify a single connection url to elastic
+        /// </summary>
+        /// <param name="connectionUri">the connection url</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithConnectionUri(string connectionUri)
             => WithConnectionUri(new Uri(connectionUri));
 
+        /// <summary>
+        /// Specify a single connection uri to elastic
+        /// </summary>
+        /// <param name="connectionUri">the connection uri</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithConnectionUri(Uri connectionUri)
         {
             _connectionPool.Add(connectionUri);
             return this;
         }
 
+        /// <summary>
+        /// Specify a pool of connections for an elastic cluster
+        /// </summary>
+        /// <param name="connectionPool">the connection pool</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithConnectionsPool(IEnumerable<string> connectionPool)
             => WithConnectionsPool(connectionPool.Select(c => new Uri(c)));
 
+        /// <summary>
+        /// Specify a pool of connections for an elastic cluster
+        /// </summary>
+        /// <param name="connectionPool">the connection pool</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithConnectionsPool(IEnumerable<Uri> connectionPool)
         {
             _connectionPool = connectionPool.ToList();
             return this;
         }
 
+        /// <summary>
+        /// Specify the certificate fingerprint to be used when connecting to elasticsearch
+        /// </summary>
+        /// <param name="certificateFingerprint">SHA256 certificate fingerprint</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithAuthorization(string certificateFingerprint)
             => WithAuthorization(certificateFingerprint, null);
 
+        /// <summary>
+        /// Specify user account to be used when connecting to elasticsearch
+        /// </summary>
+        /// <param name="basicAuthentication">Username and Password to be used</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithAuthorization((string username, string password) basicAuthentication)
             => WithAuthorization(null, basicAuthentication);
 
+        /// <summary>
+        /// Specify the certificate fingerprint and user account to be used when connecting to elasticsearch
+        /// </summary>
+        /// <param name="certificateFingerprint">SHA256 certificate fingerprint</param>
+        /// <param name="basicAuthentication">Username and Password to be used</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithAuthorization(string? certificateFingerprint = null, (string username, string password)? basicAuthentication = null)
         {
             if (!string.IsNullOrEmpty(certificateFingerprint))
@@ -79,6 +115,11 @@ namespace FluentHelper.ElasticSearch.Common
             return this;
         }
 
+        /// <summary>
+        /// Specify the timeout for all elasticsearch requests. Throws if less than 1second
+        /// </summary>
+        /// <param name="timeoutValue">timeout value</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithRequestTimeout(TimeSpan timeoutValue)
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(timeoutValue.TotalSeconds, 1);
@@ -87,12 +128,21 @@ namespace FluentHelper.ElasticSearch.Common
             return this;
         }
 
+        /// <summary>
+        /// Enable the debug mode
+        /// </summary>
+        /// <returns></returns>
         public ElasticConfigBuilder WithDebugEnabled()
         {
             _enableDebug = true;
             return this;
         }
 
+        /// <summary>
+        /// Set an action to be executed when a request is completed. Also enable debug mode
+        /// </summary>
+        /// <param name="requestCompleted">the action to be performed</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithOnRequestCompleted(Action<ApiCallDetails> requestCompleted)
         {
             _enableDebug = true;
@@ -100,6 +150,11 @@ namespace FluentHelper.ElasticSearch.Common
             return this;
         }
 
+        /// <summary>
+        /// Set the size of the chunks when using Bulk function. Throws if less than 1
+        /// </summary>
+        /// <param name="chunkSize">chunk size to be used</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithBulkInsertChunkSize(int chunkSize)
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(chunkSize, 1);
@@ -108,18 +163,34 @@ namespace FluentHelper.ElasticSearch.Common
             return this;
         }
 
+        /// <summary>
+        /// Set the prefix for all the indexes
+        /// </summary>
+        /// <param name="indexPrefix">prefix for all indexes</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithIndexPrefix(string indexPrefix)
         {
             _indexPrefix = indexPrefix.ToLower();
             return this;
         }
 
+        /// <summary>
+        /// Set the sufic for all the indexes
+        /// </summary>
+        /// <param name="indexSuffix">suffix for all indexes</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithIndexSuffix(string indexSuffix)
         {
             _indexSuffix = indexSuffix.ToLower();
             return this;
         }
 
+        /// <summary>
+        /// Add all IElasticMap defined in the assembly that contains the type. Throws if assembly is not found
+        /// </summary>
+        /// <typeparam name="T">the type to search the assembly</typeparam>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
         public ElasticConfigBuilder WithMappingFromAssemblyOf<T>()
         {
             var mappingAssembly = Assembly.GetAssembly(typeof(T)) ?? throw new ArgumentException($"Could not find assembly with {typeof(T).Name}");
@@ -128,12 +199,21 @@ namespace FluentHelper.ElasticSearch.Common
             return this;
         }
 
+        /// <summary>
+        /// Add an action to log the internal operatons
+        /// </summary>
+        /// <param name="logAction">the action to be performed</param>
+        /// <returns></returns>
         public ElasticConfigBuilder WithLogAction(Action<Microsoft.Extensions.Logging.LogLevel, Exception?, string, object?[]> logAction)
         {
             _logAction = logAction;
             return this;
         }
 
+        /// <summary>
+        /// Build the ElasticConfig
+        /// </summary>
+        /// <returns></returns>
         public IElasticConfig Build()
         {
             return new ElasticConfig

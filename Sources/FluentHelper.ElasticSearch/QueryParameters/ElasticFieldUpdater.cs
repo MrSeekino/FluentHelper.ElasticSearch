@@ -16,7 +16,7 @@ namespace FluentHelper.ElasticSearch.QueryParameters
         {
             UpdateAllFieldsCalled = false;
             FieldIdName = fieldIdName;
-            FieldList = new List<string>();
+            FieldList = [];
         }
 
         public List<string> GetFieldList()

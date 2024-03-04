@@ -7,6 +7,12 @@ namespace FluentHelper.ElasticSearch.Common
 {
     public static class ElasticDependencyInjectionExtensions
     {
+        /// <summary>
+        /// Add IElasticWrapper as dependency
+        /// </summary>
+        /// <param name="serviceCollection">the current servicecollection</param>
+        /// <param name="elasticConfigBuilderFunc">the action to build the elastic configuations</param>
+        /// <param name="serviceLifetime">the lifetime of IElasticWrapper. default to Singleton</param>
         public static void AddFluentElasticWrapper(this IServiceCollection serviceCollection, Action<ElasticConfigBuilder> elasticConfigBuilderFunc, ServiceLifetime serviceLifetime = ServiceLifetime.Singleton)
         {
             var elasticConfigBuilder = ElasticConfigBuilder.Create();
