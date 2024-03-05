@@ -1133,5 +1133,34 @@ namespace FluentHelper.ElasticSearch.Tests
 
             Assert.Throws<InvalidOperationException>(() => esWrapper.Count(null, esQueryParameters));
         }
+
+        [Test]
+        public void Verify_Dispose_ForceClientRecreation()
+        {
+            int logActionCalls = 0;
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+            elasticConfig.LogAction.Returns((loglevel, exception, message, args) =>
+            {
+                logActionCalls++;
+            });
+
+            var esWrapper = new ElasticWrapper(elasticConfig, []);
+
+            var elasticClient = esWrapper.GetOrCreateClient();
+            Assert.That(elasticClient, Is.Not.Null);
+            Assert.That(logActionCalls, Is.EqualTo(1));
+
+            elasticClient = esWrapper.GetOrCreateClient();
+            Assert.That(elasticClient, Is.Not.Null);
+            Assert.That(logActionCalls, Is.EqualTo(1));
+
+            esWrapper.Dispose();
+
+            elasticClient = esWrapper.GetOrCreateClient();
+            Assert.That(elasticClient, Is.Not.Null);
+            Assert.That(logActionCalls, Is.EqualTo(2));
+        }
     }
 }

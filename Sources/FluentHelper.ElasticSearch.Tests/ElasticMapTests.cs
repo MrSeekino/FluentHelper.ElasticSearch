@@ -42,6 +42,23 @@ namespace FluentHelper.ElasticSearch.Tests
 
             emptyMap.TestSetBasicIndexCalculator();
             Assert.That(emptyMap.IndexCalculator, Is.Not.Null);
+
+            var indexPostfixByFilter = emptyMap.IndexCalculator!.GetIndexPostfixByFilter(null!);
+            Assert.That(indexPostfixByFilter.Count(), Is.EqualTo(1));
+            Assert.That(indexPostfixByFilter.First(), Is.EqualTo("*"));
+        }
+
+        [Test]
+        public void Verify_SetBasicIndexCalculator_WorksCorrectly_WithSpecificConfiguration()
+        {
+            EmptyMap emptyMap = new EmptyMap();
+            Assert.That(emptyMap.IndexCalculator, Is.Null);
+
+            emptyMap.TestSetBasicIndexCalculator(x => x.WithFixedIndexName());
+            Assert.That(emptyMap.IndexCalculator, Is.Not.Null);
+
+            var indexPostfixByFilter = emptyMap.IndexCalculator!.GetIndexPostfixByFilter(null!);
+            Assert.That(indexPostfixByFilter.Count(), Is.EqualTo(0));
         }
 
         [Test]
