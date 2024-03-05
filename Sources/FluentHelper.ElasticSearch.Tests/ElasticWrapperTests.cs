@@ -55,16 +55,28 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(indexName, Is.EqualTo(expectedIndexName));
         }
 
-        [TestCase("2023-06-08", "2023-06-08")]
-        [TestCase("2023-06-08", "2023-06-10")]
-        [TestCase("", "2023-06-08")]
-        [TestCase("2023-06-08", "")]
-        [TestCase("", "")]
-        public void Verify_IndexNamesForQueries_AreCalculated_Correctly(string startTime, string endTime)
+        [TestCase("pre", "suf", "2023-06-08", "2023-06-08")]
+        [TestCase("pre", "suf", "2023-06-08", "2023-06-10")]
+        [TestCase("pre", "suf", "", "2023-06-08")]
+        [TestCase("pre", "suf", "2023-06-08", "")]
+        [TestCase("pre", "suf", "", "")]
+        [TestCase("pre", "", "2023-06-08", "2023-06-08")]
+        [TestCase("pre", "", "2023-06-08", "2023-06-10")]
+        [TestCase("pre", "", "", "2023-06-08")]
+        [TestCase("pre", "", "2023-06-08", "")]
+        [TestCase("pre", "", "", "")]
+        [TestCase("", "suf", "2023-06-08", "2023-06-08")]
+        [TestCase("", "suf", "2023-06-08", "2023-06-10")]
+        [TestCase("", "suf", "", "2023-06-08")]
+        [TestCase("", "suf", "2023-06-08", "")]
+        [TestCase("", "suf", "", "")]
+        [TestCase("", "", "2023-06-08", "2023-06-08")]
+        [TestCase("", "", "2023-06-08", "2023-06-10")]
+        [TestCase("", "", "", "2023-06-08")]
+        [TestCase("", "", "2023-06-08", "")]
+        [TestCase("", "", "", "")]
+        public void Verify_IndexNamesForQueries_AreCalculated_Correctly(string prefix, string suffix, string startTime, string endTime)
         {
-            string prefix = "pre";
-            string suffix = "suf";
-
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.IndexPrefix.Returns(prefix);
             elasticConfig.IndexSuffix.Returns(suffix);
@@ -89,7 +101,7 @@ namespace FluentHelper.ElasticSearch.Tests
             if (!string.IsNullOrWhiteSpace(suffix))
                 fixedIndexForQuery += $"{suffix}-";
 
-            var queryIndexes = testEntityMap.IndexCalculator.GetIndexPostfixByFilter(testFilter);
+            var queryIndexes = testEntityMap.IndexCalculator!.GetIndexPostfixByFilter(testFilter);
 
             var indexesForQuery = $"{fixedIndexForQuery}{string.Join($",{fixedIndexForQuery}", queryIndexes)}";
             indexesForQuery = indexesForQuery.ToLower();
@@ -121,8 +133,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = Substitute.For<IElasticMap>();
             elasticMap.IdPropertyName.Returns("Id");
-            elasticMap.GetMapType().Returns(typeof(IElasticMap));
-            elasticMap.When(x => x.ApplySpecialMap(Arg.Any<ElasticsearchClientSettings>())).Do(x =>
+            elasticMap.GetMappingType().Returns(typeof(IElasticMap));
+            elasticMap.When(x => x.ApplyMapping(Arg.Any<ElasticsearchClientSettings>())).Do(x =>
             {
                 applySpecialMapCalled = true;
             });
@@ -152,8 +164,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = Substitute.For<IElasticMap>();
             elasticMap.IdPropertyName.Returns("Id");
-            elasticMap.GetMapType().Returns(typeof(IElasticMap));
-            elasticMap.When(x => x.ApplySpecialMap(Arg.Any<ElasticsearchClientSettings>())).Do(x =>
+            elasticMap.GetMappingType().Returns(typeof(IElasticMap));
+            elasticMap.When(x => x.ApplyMapping(Arg.Any<ElasticsearchClientSettings>())).Do(x =>
             {
                 applySpecialMapCalled = true;
             });
@@ -685,6 +697,44 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
+        public async Task Verify_AddOrUpdateAsync_WorksCorrectly_WithDefaultRetries()
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test01",
+                GroupName = "Group01",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new UpdateResponse<TestEntity> { Result = Result.Updated };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+
+            esClient.UpdateAsync(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<UpdateRequestDescriptor<TestEntity, ExpandoObject>>>()).Returns(mockedResponse).AndDoes(x =>
+            {
+                var idToUpdate = x.Arg<Id>();
+                var indexUsed = x.Arg<IndexName>();
+
+                Assert.That(idToUpdate.ToString(), Is.EqualTo(testData.Id.ToString()));
+                Assert.That(indexUsed, Is.EqualTo(indexName));
+            });
+
+            await esWrapper.AddOrUpdateAsync(testData, x => x.Update(f => f.Name).Update(f => f.Active));
+        }
+
+        [Test]
         public void Verify_AddOrUpdate_ThrowsWithInvalidResponse()
         {
             var testData = new TestEntity
@@ -782,6 +832,76 @@ namespace FluentHelper.ElasticSearch.Tests
             {
                 Skip = 0,
                 Take = 10
+            };
+
+            var itemList = esWrapper.Query(null, esQueryParameters);
+            esClient.Received(1).Search(Arg.Any<SearchRequestDescriptor<TestEntity>>());
+            Assert.That(itemList.Count(), Is.EqualTo(3));
+        }
+
+        [Test]
+        public void Verify_Query_WorksCorrectly_WithAllParameters()
+        {
+            List<TestEntity> dataList = new()
+            {
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test01",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test02",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test03",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow,
+                    Active = true
+                }
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new SearchResponse<TestEntity>
+            {
+                HitsMetadata = new HitsMetadata<TestEntity>()
+                {
+                    Hits = dataList.Select(x => new Hit<TestEntity>
+                    {
+                        Id = x.Id.ToString(),
+                        Source = x
+                    }).ToList(),
+                    Total = new TotalHits() { Value = 3 }
+                }
+            };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Search(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var esQueryParameters = new ElasticQueryParameters<TestEntity>
+            {
+                Skip = 0,
+                Take = 10,
+                QueryDescriptor = new Elastic.Clients.Elasticsearch.QueryDsl.QueryDescriptor<TestEntity>(),
+                SortOptionsDescriptor = new SortOptionsDescriptor<TestEntity>(),
+                SourceConfig = new SourceConfig(false)
             };
 
             var itemList = esWrapper.Query(null, esQueryParameters);
@@ -940,6 +1060,34 @@ namespace FluentHelper.ElasticSearch.Tests
             esClient.Received(1).Count(Arg.Any<CountRequestDescriptor<TestEntity>>());
             Assert.That(totalItems, Is.EqualTo(3));
         }
+
+        [Test]
+        public void Verify_Count_WorksCorrectly_WithQueryDescriptor()
+        {
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new CountResponse { Count = 3 };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Count(Arg.Any<CountRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var esQueryParameters = new ElasticQueryParameters<TestEntity>()
+            {
+                QueryDescriptor = new Elastic.Clients.Elasticsearch.QueryDsl.QueryDescriptor<TestEntity>()
+            };
+            var totalItems = esWrapper.Count(null, esQueryParameters);
+
+            esClient.Received(1).Count(Arg.Any<CountRequestDescriptor<TestEntity>>());
+            Assert.That(totalItems, Is.EqualTo(3));
+        }
+
 
         [Test]
         public async Task Verify_CountAsync_WorksCorrectly()

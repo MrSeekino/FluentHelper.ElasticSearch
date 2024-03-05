@@ -37,7 +37,7 @@ namespace FluentHelper.ElasticSearch.Common
                 elasticMap.Map();
                 elasticMap.Verify();
 
-                _entityMappingList.Add(elasticMap.GetMapType(), elasticMap);
+                _entityMappingList.Add(elasticMap.GetMappingType(), elasticMap);
             }
         }
 
@@ -61,7 +61,7 @@ namespace FluentHelper.ElasticSearch.Common
                 esSettings.RequestTimeout(_elasticConfig.RequestTimeout.Value);
 
             foreach (var m in _entityMappingList)
-                m.Value.ApplySpecialMap(esSettings);
+                m.Value.ApplyMapping(esSettings);
 
             _client = new ElasticsearchClient(esSettings);
 
@@ -92,7 +92,7 @@ namespace FluentHelper.ElasticSearch.Common
         {
             AfterQueryResponse(addResponse);
 
-            if (addResponse == null || !addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
+            if (!addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
                 throw new InvalidOperationException("Could not add data", new Exception(JsonConvert.SerializeObject(addResponse)));
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), addResponse.Index]);
@@ -210,7 +210,7 @@ namespace FluentHelper.ElasticSearch.Common
         {
             AfterQueryResponse(updateResponse);
 
-            if (updateResponse == null || !updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
+            if (!updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
                 throw new InvalidOperationException("Could not update data", new Exception(JsonConvert.SerializeObject(updateResponse)));
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), updateResponse.Index]);
@@ -297,7 +297,7 @@ namespace FluentHelper.ElasticSearch.Common
         {
             AfterQueryResponse(countResponse);
 
-            if (countResponse == null || !countResponse.IsValidResponse)
+            if (!countResponse.IsValidResponse)
                 throw new InvalidOperationException("Could not count data", new Exception(JsonConvert.SerializeObject(countResponse)));
 
             return countResponse.Count;
@@ -329,7 +329,7 @@ namespace FluentHelper.ElasticSearch.Common
         {
             AfterQueryResponse(deleteResponse);
 
-            if (deleteResponse == null || !deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
+            if (!deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
                 throw new InvalidOperationException("Could not delete data", new Exception(JsonConvert.SerializeObject(deleteResponse)));
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), deleteResponse.Index]);
@@ -369,9 +369,6 @@ namespace FluentHelper.ElasticSearch.Common
 
         private void AfterQueryResponse(ElasticsearchResponse queryResponse)
         {
-            if (queryResponse == null)
-                return;
-
             if (!queryResponse.IsValidResponse)
             {
                 if (!queryResponse.TryGetOriginalException(out var originalException))

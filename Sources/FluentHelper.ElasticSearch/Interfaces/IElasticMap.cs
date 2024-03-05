@@ -9,11 +9,11 @@ namespace FluentHelper.ElasticSearch.Interfaces
     {
         string IdPropertyName { get; }
 
-        Type GetMapType();
+        Type GetMappingType();
 
         void Map();
 
-        void ApplySpecialMap(ElasticsearchClientSettings esSettings);
+        void ApplyMapping(ElasticsearchClientSettings esSettings);
 
         void Verify();
     }

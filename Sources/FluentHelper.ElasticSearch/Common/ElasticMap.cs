@@ -41,7 +41,7 @@ namespace FluentHelper.ElasticSearch.Common
         /// Set a basic index calculator
         /// </summary>
         /// <param name="basicIndexCalculator">the action to configure the basic calculator</param>
-        public void SetBasicIndexCalculator(Action<IBasicIndexCalculator<TEntity>>? basicIndexCalculator = null)
+        protected void SetBasicIndexCalculator(Action<IBasicIndexCalculator<TEntity>>? basicIndexCalculator = null)
         {
             var indexCalculator = BasicIndexCalculator<TEntity>.Create();
             if (basicIndexCalculator != null)
@@ -77,7 +77,7 @@ namespace FluentHelper.ElasticSearch.Common
         /// Get the current true type of the mapping
         /// </summary>
         /// <returns></returns>
-        public Type GetMapType()
+        public Type GetMappingType()
         {
             return typeof(TEntity);
         }
@@ -86,7 +86,7 @@ namespace FluentHelper.ElasticSearch.Common
         /// Apply the map to the ElasticsearchClient settings. Automatically used when building the wrapper
         /// </summary>
         /// <param name="esSettings"></param>
-        public void ApplySpecialMap(ElasticsearchClientSettings esSettings)
+        public void ApplyMapping(ElasticsearchClientSettings esSettings)
         {
             esSettings.DefaultMappingFor<TEntity>(x =>
             {
