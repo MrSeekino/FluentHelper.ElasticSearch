@@ -1,6 +1,6 @@
 ﻿using FluentHelper.ElasticSearch.Common;
 
-namespace FluentHelper.ElasticSearch.Tests.Support
+namespace FluentHelper.ElasticSearch.TestsSupport
 {
     public class TestEntityMap : ElasticMap<TestEntity>
     {
@@ -8,7 +8,7 @@ namespace FluentHelper.ElasticSearch.Tests.Support
         {
             SetBaseIndexName("testentity");
 
-            SetCustomIndexCalculator<TestFilter>(c =>
+            SetFilterableIndexCalculator<TestFilter>(c =>
             {
                 c.WithPostfixByEntity(x => $"{x.GroupName}-{x.CreationTime:yyyy.MM.dd}");
 

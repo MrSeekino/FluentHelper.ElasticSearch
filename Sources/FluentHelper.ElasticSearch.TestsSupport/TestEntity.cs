@@ -1,4 +1,4 @@
-﻿namespace FluentHelper.ElasticSearch.Tests.Support
+﻿namespace FluentHelper.ElasticSearch.TestsSupport
 {
     public class TestEntity
     {

@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FluentHelper.ElasticSearch.TestsSupport\FluentHelper.ElasticSearch.TestsSupport.csproj" />
     <ProjectReference Include="..\FluentHelper.ElasticSearch\FluentHelper.ElasticSearch.csproj" />
   </ItemGroup>
 

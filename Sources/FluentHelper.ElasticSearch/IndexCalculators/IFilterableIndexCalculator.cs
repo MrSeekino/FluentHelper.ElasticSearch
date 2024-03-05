@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace FluentHelper.ElasticSearch.IndexCalculators
 {
-    public interface ICustomIndexCalculator<T, TFilter> : IElasticIndexCalculator<T>
+    public interface IFilterableIndexCalculator<T, TFilter> : IElasticIndexCalculator<T>
     {
         /// <summary>
         /// Set the calculation function that return the postfix for the index when adding, deleting and updating

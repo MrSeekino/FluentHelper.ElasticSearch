@@ -3,17 +3,17 @@ using System.Collections.Generic;
 
 namespace FluentHelper.ElasticSearch.IndexCalculators
 {
-    internal sealed class CustomIndexCalculator<T, TFilter> : ICustomIndexCalculator<T, TFilter>
+    internal sealed class FilterableIndexCalculator<T, TFilter> : IFilterableIndexCalculator<T, TFilter>
     {
         private Func<T, string>? _getIndexPostfixByEntity;
         private Func<TFilter?, IEnumerable<string>?>? _getIndexPostfixByFilter;
 
-        private CustomIndexCalculator()
+        private FilterableIndexCalculator()
         { }
 
-        public static ICustomIndexCalculator<T, TFilter> Create()
+        public static IFilterableIndexCalculator<T, TFilter> Create()
         {
-            return new CustomIndexCalculator<T, TFilter>();
+            return new FilterableIndexCalculator<T, TFilter>();
         }
 
         public void WithPostfixByEntity(Func<T, string> getIndexPostfixByEntity)

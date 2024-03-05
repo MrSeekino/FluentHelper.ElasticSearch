@@ -54,11 +54,11 @@ namespace FluentHelper.ElasticSearch.Common
         /// Set a custom index calculator that allows a filter to be used when querying elastic with the current type
         /// </summary>
         /// <typeparam name="TFilter">the filter type</typeparam>
-        /// <param name="customIndexCalculator">the action to configure the custom calculator</param>
-        protected void SetCustomIndexCalculator<TFilter>(Action<ICustomIndexCalculator<TEntity, TFilter>> customIndexCalculator)
+        /// <param name="filterableIndexCalculator">the action to configure the custom calculator</param>
+        protected void SetFilterableIndexCalculator<TFilter>(Action<IFilterableIndexCalculator<TEntity, TFilter>> filterableIndexCalculator)
         {
-            var indexCalculator = CustomIndexCalculator<TEntity, TFilter>.Create();
-            customIndexCalculator(indexCalculator);
+            var indexCalculator = FilterableIndexCalculator<TEntity, TFilter>.Create();
+            filterableIndexCalculator(indexCalculator);
 
             IndexCalculator = indexCalculator;
         }

@@ -4,7 +4,7 @@ using Elastic.Transport;
 using FluentHelper.ElasticSearch.Common;
 using FluentHelper.ElasticSearch.Interfaces;
 using FluentHelper.ElasticSearch.QueryParameters;
-using FluentHelper.ElasticSearch.Tests.Support;
+using FluentHelper.ElasticSearch.TestsSupport;
 using NSubstitute;
 using NUnit.Framework;
 using System.Dynamic;

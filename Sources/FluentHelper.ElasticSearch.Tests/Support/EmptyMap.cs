@@ -24,8 +24,8 @@ namespace FluentHelper.ElasticSearch.Tests.Support
         public void TestSetBasicIndexCalculator(Action<IBasicIndexCalculator<EmptyEntity>>? basicIndexCalculator = null)
             => SetBasicIndexCalculator(basicIndexCalculator);
 
-        public void TestSetCustomIndexCalculator<TFilter>(Action<ICustomIndexCalculator<EmptyEntity, TFilter>> customIndexCalculator)
-            => SetCustomIndexCalculator(customIndexCalculator);
+        public void TestSetFilterableIndexCalculator<TFilter>(Action<IFilterableIndexCalculator<EmptyEntity, TFilter>> filterableIndexCalculator)
+            => SetFilterableIndexCalculator(filterableIndexCalculator);
 
         public void TestId<P>(Expression<Func<EmptyEntity, P>> expression)
             => Id(expression);

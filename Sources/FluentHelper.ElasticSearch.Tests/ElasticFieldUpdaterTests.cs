@@ -1,5 +1,5 @@
 ﻿using FluentHelper.ElasticSearch.QueryParameters;
-using FluentHelper.ElasticSearch.Tests.Support;
+using FluentHelper.ElasticSearch.TestsSupport;
 using NUnit.Framework;
 
 namespace FluentHelper.ElasticSearch.Tests

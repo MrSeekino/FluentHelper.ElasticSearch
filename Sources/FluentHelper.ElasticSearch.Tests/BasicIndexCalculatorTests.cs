@@ -1,5 +1,5 @@
 ﻿using FluentHelper.ElasticSearch.IndexCalculators;
-using FluentHelper.ElasticSearch.Tests.Support;
+using FluentHelper.ElasticSearch.TestsSupport;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 

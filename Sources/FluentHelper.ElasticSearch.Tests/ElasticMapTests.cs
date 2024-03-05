@@ -1,6 +1,7 @@
 ﻿using FluentHelper.ElasticSearch.Common;
 using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Tests.Support;
+using FluentHelper.ElasticSearch.TestsSupport;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -62,12 +63,12 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
-        public void Verify_SetCustomIndexCalculator_WorksCorrectly()
+        public void Verify_SetFilterableIndexCalculator_WorksCorrectly()
         {
             EmptyMap emptyMap = new EmptyMap();
             Assert.That(emptyMap.IndexCalculator, Is.Null);
 
-            emptyMap.TestSetCustomIndexCalculator<string>(x =>
+            emptyMap.TestSetFilterableIndexCalculator<string>(x =>
             {
                 x.WithPostfixByEntity(p => string.Empty);
                 x.WithPostfixByFilter(f => Array.Empty<string>());

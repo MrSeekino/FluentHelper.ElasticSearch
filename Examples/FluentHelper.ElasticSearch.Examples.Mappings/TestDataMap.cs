@@ -1,6 +1,5 @@
 ﻿using FluentHelper.ElasticSearch.Common;
 using FluentHelper.ElasticSearch.Examples.Models;
-using FluentHelper.ElasticSearch.IndexCalculators;
 
 namespace FluentHelper.ElasticSearch.Examples.Mappings
 {
@@ -10,7 +9,7 @@ namespace FluentHelper.ElasticSearch.Examples.Mappings
         {
             SetBaseIndexName("testdata");
 
-            SetIndexCalculator(new BasicIndexCalculator<TestData>(true));
+            SetBasicIndexCalculator(x => x.WithFixedIndexName());
 
             Id(e => e.Id);
         }

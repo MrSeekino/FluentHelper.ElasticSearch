@@ -1,6 +1,6 @@
 ﻿using FluentHelper.ElasticSearch.Common;
 using FluentHelper.ElasticSearch.QueryParameters;
-using FluentHelper.ElasticSearch.Tests.Support;
+using FluentHelper.ElasticSearch.TestsSupport;
 using Microsoft.CSharp.RuntimeBinder;
 using NUnit.Framework;
 

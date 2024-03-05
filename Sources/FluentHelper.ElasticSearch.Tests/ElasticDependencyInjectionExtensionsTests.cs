@@ -1,6 +1,6 @@
 ﻿using FluentHelper.ElasticSearch.Common;
 using FluentHelper.ElasticSearch.Interfaces;
-using FluentHelper.ElasticSearch.Tests.Support;
+using FluentHelper.ElasticSearch.TestsSupport;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
