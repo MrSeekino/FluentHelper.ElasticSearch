@@ -122,6 +122,21 @@ namespace FluentHelper.ElasticSearch.Interfaces
         Task<bool> ExistsAsync<TEntity>(TEntity inputData) where TEntity : class;
 
         /// <summary>
+        /// Get the specified source using the configured mapping
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        /// <param name="inputData">the data to get all the fields. Only the field that is mapped as the Id is needed for the call</param>
+        /// <returns></returns>
+        TEntity? GetSource<TEntity>(TEntity inputData) where TEntity : class;
+        /// <summary>
+        /// Get the specified source using the configured mapping
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        /// <param name="inputData">the data to get all the fields. Only the field that is mapped as the Id is needed for the call</param>
+        /// <returns></returns>
+        Task<TEntity?> GetSourceAsync<TEntity>(TEntity inputData) where TEntity : class;
+
+        /// <summary>
         /// Get the indexname for the inputdata based on mappings
         /// </summary>
         /// <typeparam name="TEntity">the type of data</typeparam>

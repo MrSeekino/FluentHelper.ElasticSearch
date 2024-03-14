@@ -1201,6 +1201,96 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(itemExist, Is.EqualTo(itemExisting));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Verify_GetSource_WorksCorrectly(bool itemExisting)
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new GetResponse<TestEntity> { Source = itemExisting ? testData : null, Found = itemExisting };
+            int httpStatusCode = itemExisting ? 200 : 404;
+            var mockedResponse = TestableResponseFactory.CreateResponse(response, httpStatusCode, itemExisting);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Get<TestEntity>(Arg.Any<IndexName>(), Arg.Any<Id>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var sourceData = esWrapper.GetSource(testData);
+
+            esClient.Received(1).Get<TestEntity>(Arg.Any<IndexName>(), Arg.Any<Id>());
+
+            if (!itemExisting)
+            {
+                Assert.That(sourceData, Is.Null);
+                return;
+            }
+
+            Assert.That(sourceData, Is.Not.Null);
+            Assert.That(sourceData!.Name, Is.EqualTo(testData.Name));
+            Assert.That(sourceData!.GroupName, Is.EqualTo(testData.GroupName));
+            Assert.That(sourceData!.CreationTime, Is.EqualTo(testData.CreationTime));
+            Assert.That(sourceData!.Active, Is.EqualTo(testData.Active));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Verify_GetSourceAsync_WorksCorrectly(bool itemExisting)
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new GetResponse<TestEntity> { Source = itemExisting ? testData : null, Found = itemExisting };
+            int httpStatusCode = itemExisting ? 200 : 404;
+            var mockedResponse = TestableResponseFactory.CreateResponse(response, httpStatusCode, itemExisting);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.GetAsync<TestEntity>(Arg.Any<IndexName>(), Arg.Any<Id>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var sourceData = await esWrapper.GetSourceAsync(testData);
+
+            await esClient.Received(1).GetAsync<TestEntity>(Arg.Any<IndexName>(), Arg.Any<Id>());
+
+            if (!itemExisting)
+            {
+                Assert.That(sourceData, Is.Null);
+                return;
+            }
+
+            Assert.That(sourceData, Is.Not.Null);
+            Assert.That(sourceData!.Name, Is.EqualTo(testData.Name));
+            Assert.That(sourceData!.GroupName, Is.EqualTo(testData.GroupName));
+            Assert.That(sourceData!.CreationTime, Is.EqualTo(testData.CreationTime));
+            Assert.That(sourceData!.Active, Is.EqualTo(testData.Active));
+        }
+
         [Test]
         public void Verify_Dispose_ForceClientRecreation()
         {

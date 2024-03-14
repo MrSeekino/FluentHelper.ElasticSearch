@@ -337,24 +337,16 @@ namespace FluentHelper.ElasticSearch.Common
 
         public bool Exists<TEntity>(TEntity inputData) where TEntity : class
         {
-            var existsParameters = GetExistsParameters(inputData);
+            var existsParameters = GetIndexAndIdParameters(inputData);
             var existsResponse = GetOrCreateClient().Exists<TEntity>(existsParameters.IndexName, existsParameters.Id, x => { });
             return CheckExistsResponse<TEntity>(existsResponse);
         }
 
         public async Task<bool> ExistsAsync<TEntity>(TEntity inputData) where TEntity : class
         {
-            var existsParameters = GetExistsParameters(inputData);
+            var existsParameters = GetIndexAndIdParameters(inputData);
             var existsResponse = await GetOrCreateClient().ExistsAsync<TEntity>(existsParameters.IndexName, existsParameters.Id, x => { });
             return CheckExistsResponse<TEntity>(existsResponse);
-        }
-
-        private (string IndexName, Id Id) GetExistsParameters<TEntity>(TEntity inputData) where TEntity : class
-        {
-            string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
-            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
-
-            return new(indexName, inputId!.ToString()!);
         }
 
         private bool CheckExistsResponse<TEntity>(ExistsResponse existsReponse) where TEntity : class
@@ -362,6 +354,35 @@ namespace FluentHelper.ElasticSearch.Common
             AfterQueryResponse(existsReponse, false);
 
             return existsReponse.Exists;
+        }
+
+        public TEntity? GetSource<TEntity>(TEntity inputData) where TEntity : class
+        {
+            var existsParameters = GetIndexAndIdParameters(inputData);
+            var getResponse = GetOrCreateClient().Get<TEntity>(existsParameters.IndexName, existsParameters.Id);
+            return CheckGetResponse(getResponse);
+        }
+
+        public async Task<TEntity?> GetSourceAsync<TEntity>(TEntity inputData) where TEntity : class
+        {
+            var existsParameters = GetIndexAndIdParameters(inputData);
+            var getResponse = await GetOrCreateClient().GetAsync<TEntity>(existsParameters.IndexName, existsParameters.Id);
+            return CheckGetResponse(getResponse);
+        }
+
+        private (string IndexName, Id Id) GetIndexAndIdParameters<TEntity>(TEntity inputData) where TEntity : class
+        {
+            string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
+            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
+
+            return new(indexName, inputId!.ToString()!);
+        }
+
+        private TEntity? CheckGetResponse<TEntity>(GetResponse<TEntity> getResponse) where TEntity : class
+        {
+            AfterQueryResponse(getResponse, false);
+
+            return getResponse.Source;
         }
 
         public string GetIndexName<TEntity>(TEntity inputData, out ElasticMap<TEntity> mapInstance) where TEntity : class
@@ -396,9 +417,9 @@ namespace FluentHelper.ElasticSearch.Common
             return indexNames;
         }
 
-        private void AfterQueryResponse(ElasticsearchResponse queryResponse, bool throwsWhenInvalid = true)
+        private void AfterQueryResponse(ElasticsearchResponse queryResponse, bool trapWhenInvalid = true)
         {
-            if (throwsWhenInvalid && !queryResponse.IsValidResponse)
+            if (trapWhenInvalid && !queryResponse.IsValidResponse)
             {
                 if (!queryResponse.TryGetOriginalException(out var originalException))
                     originalException = null;
