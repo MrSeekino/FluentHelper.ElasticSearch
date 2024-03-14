@@ -46,10 +46,10 @@ namespace FluentHelper.ElasticSearch.Tests
             if (!string.IsNullOrWhiteSpace(suffix))
                 expectedIndexName += $"{suffix}-";
 
-            expectedIndexName += testEntityMap.IndexCalculator.GetIndexPostfixByEntity(testEntityInstance);
+            expectedIndexName += testEntityMap.IndexCalculator!.GetIndexPostfixByEntity(testEntityInstance);
             expectedIndexName = expectedIndexName.ToLower();
 
-            string indexName = elasticWrapper.GetIndexName(testEntityInstance, out _);
+            string indexName = elasticWrapper.GetIndexName(testEntityInstance);
             Assert.That(indexName, Is.Not.Null);
             Assert.That(indexName.Length, Is.GreaterThan(0));
             Assert.That(indexName, Is.EqualTo(expectedIndexName));
@@ -203,7 +203,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
-            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.Index(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse).AndDoes(x =>
             {
@@ -241,7 +241,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
-            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.IndexAsync(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse).AndDoes(x =>
             {
@@ -537,7 +537,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
-            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.Delete(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<DeleteRequestDescriptor<TestEntity>>>()).Returns(mockedResponse).AndDoes(x =>
             {
@@ -575,7 +575,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
-            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.DeleteAsync(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<DeleteRequestDescriptor<TestEntity>>>()).Returns(mockedResponse).AndDoes(x =>
             {
@@ -613,7 +613,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
-            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.Delete(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<DeleteRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
@@ -644,7 +644,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
-            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.Update(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<UpdateRequestDescriptor<TestEntity, ExpandoObject>>>()).Returns(mockedResponse).AndDoes(x =>
             {
@@ -682,7 +682,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
-            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.UpdateAsync(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<UpdateRequestDescriptor<TestEntity, ExpandoObject>>>()).Returns(mockedResponse).AndDoes(x =>
             {
@@ -720,7 +720,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
-            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.UpdateAsync(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<UpdateRequestDescriptor<TestEntity, ExpandoObject>>>()).Returns(mockedResponse).AndDoes(x =>
             {
@@ -758,7 +758,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
-            IndexName indexName = esWrapper.GetIndexName(testData, out _);
+            IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.Update(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<UpdateRequestDescriptor<TestEntity, ExpandoObject>>>()).Returns(mockedResponse).AndDoes(x =>
             {

@@ -195,7 +195,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         private (string IndexName, Id Id, Action<UpdateRequestDescriptor<TEntity, ExpandoObject>> ConfigureRequest) GetAddOrUpdatedParameters<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts) where TEntity : class
         {
-            string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
+            string indexName = GetIndexName(inputData, out IElasticMap<TEntity> mapInstance);
 
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
@@ -319,7 +319,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         private (string IndexName, Id Id) GetDeleteParameters<TEntity>(TEntity inputData) where TEntity : class
         {
-            string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
+            string indexName = GetIndexName(inputData, out IElasticMap<TEntity> mapInstance);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
             return new(indexName, inputId!.ToString()!);
@@ -372,7 +372,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         private (string IndexName, Id Id) GetIndexAndIdParameters<TEntity>(TEntity inputData) where TEntity : class
         {
-            string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
+            string indexName = GetIndexName(inputData, out IElasticMap<TEntity> mapInstance);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
             return new(indexName, inputId!.ToString()!);
@@ -385,9 +385,9 @@ namespace FluentHelper.ElasticSearch.Common
             return getResponse.Source;
         }
 
-        public string GetIndexName<TEntity>(TEntity inputData, out ElasticMap<TEntity> mapInstance) where TEntity : class
+        private string GetIndexName<TEntity>(TEntity inputData, out IElasticMap<TEntity> mapInstance) where TEntity : class
         {
-            mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
+            mapInstance = (IElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string indexName = string.IsNullOrWhiteSpace(_elasticConfig.IndexPrefix) ? $"{mapInstance.BaseIndexName}" : $"{_elasticConfig.IndexPrefix}-{mapInstance.BaseIndexName}";
 
             if (!string.IsNullOrWhiteSpace(_elasticConfig.IndexSuffix))
@@ -402,9 +402,15 @@ namespace FluentHelper.ElasticSearch.Common
             return indexName;
         }
 
+        public string GetIndexName<TEntity>(TEntity inputData) where TEntity : class
+        {
+            string indexName = GetIndexName(inputData, out _);
+            return indexName;
+        }
+
         public string GetIndexNamesForQueries<TEntity>(object? baseObjectFilter) where TEntity : class
         {
-            var mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
+            var mapInstance = (IElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
             string fixedIndexName = string.IsNullOrWhiteSpace(_elasticConfig.IndexPrefix) ? $"{mapInstance.BaseIndexName}" : $"{_elasticConfig.IndexPrefix}-{mapInstance.BaseIndexName}";
 
             if (!string.IsNullOrWhiteSpace(_elasticConfig.IndexSuffix))

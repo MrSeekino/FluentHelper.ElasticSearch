@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 
 namespace FluentHelper.ElasticSearch.Common
 {
-    public abstract class ElasticMap<TEntity> : IElasticMap where TEntity : class
+    public abstract class ElasticMap<TEntity> : IElasticMap<TEntity> where TEntity : class
     {
         public virtual string BaseIndexName { get; private set; }
         public virtual IElasticIndexCalculator<TEntity>? IndexCalculator { get; private set; }

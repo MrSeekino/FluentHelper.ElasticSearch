@@ -1,5 +1,4 @@
 ﻿using Elastic.Clients.Elasticsearch;
-using FluentHelper.ElasticSearch.Common;
 using FluentHelper.ElasticSearch.QueryParameters;
 using System;
 using System.Collections.Generic;
@@ -141,9 +140,8 @@ namespace FluentHelper.ElasticSearch.Interfaces
         /// </summary>
         /// <typeparam name="TEntity">the type of data</typeparam>
         /// <param name="inputData">the data that the index will be calculated on</param>
-        /// <param name="mapInstance">the mapping instance used for the calculation</param>
         /// <returns></returns>
-        string GetIndexName<TEntity>(TEntity inputData, out ElasticMap<TEntity> mapInstance) where TEntity : class;
+        string GetIndexName<TEntity>(TEntity inputData) where TEntity : class;
         /// <summary>
         /// Get all the indexes that will be used for a query on the specified filter
         /// </summary>
