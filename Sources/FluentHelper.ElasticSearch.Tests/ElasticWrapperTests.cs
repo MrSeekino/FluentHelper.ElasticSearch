@@ -1088,7 +1088,6 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(totalItems, Is.EqualTo(3));
         }
 
-
         [Test]
         public async Task Verify_CountAsync_WorksCorrectly()
         {
@@ -1132,6 +1131,74 @@ namespace FluentHelper.ElasticSearch.Tests
             var esQueryParameters = new ElasticQueryParameters<TestEntity>();
 
             Assert.Throws<InvalidOperationException>(() => esWrapper.Count(null, esQueryParameters));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Verify_Exists_WorksCorrectly(bool itemExisting)
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new ExistsResponse { };
+            int httpStatusCode = itemExisting ? 200 : 404;
+            var mockedResponse = TestableResponseFactory.CreateResponse(response, httpStatusCode, itemExisting);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Exists(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<ExistsRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var itemExist = esWrapper.Exists(testData);
+
+            esClient.Received(1).Exists(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<ExistsRequestDescriptor<TestEntity>>>());
+            Assert.That(itemExist, Is.EqualTo(itemExisting));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Verify_ExistsAsync_WorksCorrectly(bool itemExisting)
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var response = new ExistsResponse { };
+            int httpStatusCode = itemExisting ? 200 : 404;
+            var mockedResponse = TestableResponseFactory.CreateResponse(response, httpStatusCode, itemExisting);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.ExistsAsync(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<ExistsRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var itemExist = await esWrapper.ExistsAsync(testData);
+
+            await esClient.Received(1).ExistsAsync(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<ExistsRequestDescriptor<TestEntity>>>());
+            Assert.That(itemExist, Is.EqualTo(itemExisting));
         }
 
         [Test]

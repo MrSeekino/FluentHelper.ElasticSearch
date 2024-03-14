@@ -338,14 +338,14 @@ namespace FluentHelper.ElasticSearch.Common
         public bool Exists<TEntity>(TEntity inputData) where TEntity : class
         {
             var existsParameters = GetExistsParameters(inputData);
-            var existsResponse = GetOrCreateClient().Exists<TEntity>(existsParameters.Id, x => x.Index(existsParameters.IndexName));
+            var existsResponse = GetOrCreateClient().Exists<TEntity>(existsParameters.IndexName, existsParameters.Id, x => { });
             return CheckExistsResponse<TEntity>(existsResponse);
         }
 
         public async Task<bool> ExistsAsync<TEntity>(TEntity inputData) where TEntity : class
         {
             var existsParameters = GetExistsParameters(inputData);
-            var existsResponse = await GetOrCreateClient().ExistsAsync<TEntity>(existsParameters.Id, x => x.Index(existsParameters.IndexName));
+            var existsResponse = await GetOrCreateClient().ExistsAsync<TEntity>(existsParameters.IndexName, existsParameters.Id, x => { });
             return CheckExistsResponse<TEntity>(existsResponse);
         }
 
@@ -359,10 +359,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         private bool CheckExistsResponse<TEntity>(ExistsResponse existsReponse) where TEntity : class
         {
-            AfterQueryResponse(existsReponse);
-
-            if (!existsReponse.IsValidResponse)
-                throw new InvalidOperationException($"Could not check if data of type {typeof(TEntity).Name} exists", new Exception(JsonConvert.SerializeObject(existsReponse)));
+            AfterQueryResponse(existsReponse, false);
 
             return existsReponse.Exists;
         }
@@ -399,9 +396,9 @@ namespace FluentHelper.ElasticSearch.Common
             return indexNames;
         }
 
-        private void AfterQueryResponse(ElasticsearchResponse queryResponse)
+        private void AfterQueryResponse(ElasticsearchResponse queryResponse, bool throwsWhenInvalid = true)
         {
-            if (!queryResponse.IsValidResponse)
+            if (throwsWhenInvalid && !queryResponse.IsValidResponse)
             {
                 if (!queryResponse.TryGetOriginalException(out var originalException))
                     originalException = null;
