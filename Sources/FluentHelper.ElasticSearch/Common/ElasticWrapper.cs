@@ -335,6 +335,38 @@ namespace FluentHelper.ElasticSearch.Common
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), deleteResponse.Index]);
         }
 
+        public bool Exists<TEntity>(TEntity inputData) where TEntity : class
+        {
+            var existsParameters = GetExistsParameters(inputData);
+            var existsResponse = GetOrCreateClient().Exists<TEntity>(existsParameters.Id, x => x.Index(existsParameters.IndexName));
+            return CheckExistsResponse<TEntity>(existsResponse);
+        }
+
+        public async Task<bool> ExistsAsync<TEntity>(TEntity inputData) where TEntity : class
+        {
+            var existsParameters = GetExistsParameters(inputData);
+            var existsResponse = await GetOrCreateClient().ExistsAsync<TEntity>(existsParameters.Id, x => x.Index(existsParameters.IndexName));
+            return CheckExistsResponse<TEntity>(existsResponse);
+        }
+
+        private (string IndexName, Id Id) GetExistsParameters<TEntity>(TEntity inputData) where TEntity : class
+        {
+            string indexName = GetIndexName(inputData, out ElasticMap<TEntity> mapInstance);
+            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
+
+            return new(indexName, inputId!.ToString()!);
+        }
+
+        private bool CheckExistsResponse<TEntity>(ExistsResponse existsReponse) where TEntity : class
+        {
+            AfterQueryResponse(existsReponse);
+
+            if (!existsReponse.IsValidResponse)
+                throw new InvalidOperationException($"Could not check if data of type {typeof(TEntity).Name} exists", new Exception(JsonConvert.SerializeObject(existsReponse)));
+
+            return existsReponse.Exists;
+        }
+
         public string GetIndexName<TEntity>(TEntity inputData, out ElasticMap<TEntity> mapInstance) where TEntity : class
         {
             mapInstance = (ElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];

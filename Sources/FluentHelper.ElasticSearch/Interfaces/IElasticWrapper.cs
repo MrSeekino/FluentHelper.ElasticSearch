@@ -107,6 +107,21 @@ namespace FluentHelper.ElasticSearch.Interfaces
         Task DeleteAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class;
 
         /// <summary>
+        /// Check if the specifed elements exist in the index that is supposed to based on mapping
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        /// <param name="inputData">the data to verify the existence</param>
+        /// <returns></returns>
+        bool Exists<TEntity>(TEntity inputData) where TEntity : class;
+        /// <summary>
+        /// Check if the specifed elements exist in the index that is supposed to based on mapping
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        /// <param name="inputData">the data to verify the existence</param>
+        /// <returns></returns>
+        Task<bool> ExistsAsync<TEntity>(TEntity inputData) where TEntity : class;
+
+        /// <summary>
         /// Get the indexname for the inputdata based on mappings
         /// </summary>
         /// <typeparam name="TEntity">the type of data</typeparam>
