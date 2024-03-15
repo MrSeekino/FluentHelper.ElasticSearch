@@ -118,7 +118,7 @@ namespace FluentHelper.ElasticSearch.Interfaces
         /// <typeparam name="TEntity">the type of data</typeparam>
         /// <param name="inputData">the data to verify the existence</param>
         /// <returns></returns>
-        Task<bool> ExistsAsync<TEntity>(TEntity inputData) where TEntity : class;
+        Task<bool> ExistsAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class;
 
         /// <summary>
         /// Get the specified source using the configured mapping
@@ -133,7 +133,7 @@ namespace FluentHelper.ElasticSearch.Interfaces
         /// <typeparam name="TEntity">the type of data</typeparam>
         /// <param name="inputData">the data to get all the fields. Only the field that is mapped as the Id is needed for the call</param>
         /// <returns></returns>
-        Task<TEntity?> GetSourceAsync<TEntity>(TEntity inputData) where TEntity : class;
+        Task<TEntity?> GetSourceAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class;
 
         /// <summary>
         /// Get the indexname for the inputdata based on mappings
@@ -149,5 +149,41 @@ namespace FluentHelper.ElasticSearch.Interfaces
         /// <param name="baseObjectFilter">the base filter to be used when using custom index calculator</param>
         /// <returns></returns>
         string GetIndexNamesForQueries<TEntity>(object? baseObjectFilter) where TEntity : class;
+
+        /// <summary>
+        /// Create an index based in the input data and configured mapping
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        /// <param name="inputData">the input data used to calculate index parameters</param>
+        void CreateIndex<TEntity>(TEntity inputData) where TEntity : class;
+        /// <summary>
+        /// Create an index with the provided name and configured mapping
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        /// <param name="indexName">the name of the index</param>
+        void CreateIndex<TEntity>(string indexName) where TEntity : class;
+        /// <summary>
+        /// Create an index based in the input data and configured mapping
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        /// <param name="inputData">the input data used to calculate index parameters</param>
+        Task CreateIndexAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class;
+        /// <summary>
+        /// Create an index with the provided name and configured mapping
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        /// <param name="indexName">the name of the index</param>
+        Task CreateIndexAsync<TEntity>(string indexName, CancellationToken cancellationToken = default) where TEntity : class;
+
+        /// <summary>
+        /// Create an index template compliant to the configured mapping for the type
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        void CreateIndexTemplate<TEntity>() where TEntity : class;
+        /// <summary>
+        /// Create an index template compliant to the configured mapping for the type
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        Task CreateIndexTemplateAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class;
     }
 }

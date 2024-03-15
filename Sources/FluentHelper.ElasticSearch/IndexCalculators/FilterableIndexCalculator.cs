@@ -26,6 +26,14 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
             _getIndexPostfixByFilter = getIndexPostfixByFilter;
         }
 
+        public string GetBaseIndexWildcard()
+        {
+            if (_getIndexPostfixByFilter == null)
+                return "*";
+
+            return "-*";
+        }
+
         public string GetIndexPostfixByEntity(T input)
         {
             if (_getIndexPostfixByEntity == null)

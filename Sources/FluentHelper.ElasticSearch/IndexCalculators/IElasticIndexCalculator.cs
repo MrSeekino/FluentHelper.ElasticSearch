@@ -4,6 +4,8 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
 {
     public interface IElasticIndexCalculator<TEntity>
     {
+        string GetBaseIndexWildcard();
+
         /// <summary>
         /// Calculate the postfix to be added to index calculation for the type based on the current input
         /// </summary>

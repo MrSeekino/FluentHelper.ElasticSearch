@@ -23,6 +23,14 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
             return this;
         }
 
+        public string GetBaseIndexWildcard()
+        {
+            if (_fixedIndex)
+                return string.Empty;
+
+            return "*";
+        }
+
         public string GetIndexPostfixByEntity(T input)
         {
             return string.Empty;
@@ -30,10 +38,12 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
 
         public IEnumerable<string> GetIndexPostfixByFilter(object? baseObjectFilter)
         {
-            if (_fixedIndex)
+            string baseWildcard = GetBaseIndexWildcard();
+
+            if (string.IsNullOrWhiteSpace(baseWildcard))
                 return [];
 
-            return ["*"];
+            return [baseWildcard];
         }
     }
 }

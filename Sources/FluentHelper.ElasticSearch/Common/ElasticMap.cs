@@ -1,4 +1,6 @@
 ﻿using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.IndexManagement;
+using Elastic.Clients.Elasticsearch.Mapping;
 using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Interfaces;
 using System;
@@ -12,11 +14,18 @@ namespace FluentHelper.ElasticSearch.Common
         public virtual IElasticIndexCalculator<TEntity>? IndexCalculator { get; private set; }
         public virtual string IdPropertyName { get; private set; }
 
+        public virtual bool CreateTemplate { get; private set; }
+        public virtual IndexSettingsDescriptor? IndexSettings { get; private set; }
+        public virtual PropertiesDescriptor<TEntity>? IndexMappings { get; private set; }
+
         protected ElasticMap()
         {
             BaseIndexName = string.Empty;
             IndexCalculator = null;
             IdPropertyName = string.Empty;
+            CreateTemplate = false;
+            IndexSettings = null;
+            IndexMappings = null;
         }
 
         /// <summary>
@@ -71,6 +80,38 @@ namespace FluentHelper.ElasticSearch.Common
         protected void Id<P>(Expression<Func<TEntity, P>> expression)
         {
             IdPropertyName = ((MemberExpression)expression.Body).Member.Name;
+        }
+
+        /// <summary>
+        /// Enable the automatic creation of templates when indexing data
+        /// </summary>
+        protected void EnableTemplateCreation()
+        {
+            CreateTemplate = true;
+        }
+
+        /// <summary>
+        /// Set settings for indexes and template when creating new indexes
+        /// </summary>
+        /// <param name="settings"></param>
+        protected void Settings(Action<IndexSettingsDescriptor> settings)
+        {
+            IndexSettingsDescriptor settingsDescriptor = new IndexSettingsDescriptor();
+            settings(settingsDescriptor);
+
+            IndexSettings = settingsDescriptor;
+        }
+
+        /// <summary>
+        /// Set property mappings when creating new indexes
+        /// </summary>
+        /// <param name="mappings"></param>
+        protected void Mappings(Action<PropertiesDescriptor<TEntity>> mappings)
+        {
+            PropertiesDescriptor<TEntity> mappingDescriptor = new PropertiesDescriptor<TEntity>();
+            mappings(mappingDescriptor);
+
+            IndexMappings = mappingDescriptor;
         }
 
         /// <summary>
