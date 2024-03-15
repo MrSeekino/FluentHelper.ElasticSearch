@@ -14,7 +14,12 @@ namespace FluentHelper.ElasticSearch.Examples.Repositories
             _elasticWrapper = elasticWrapper;
         }
 
-        public async Task Add(TestData data)
+        public void Add(TestData data)
+        {
+            _elasticWrapper.Add(data);
+        }
+
+        public async Task AddAsync(TestData data)
         {
             await _elasticWrapper.AddAsync(data);
         }

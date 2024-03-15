@@ -8,7 +8,8 @@ namespace FluentHelper.ElasticSearch.Examples.Repositories
 
         Task<TestData?> GetById(Guid id);
 
-        Task Add(TestData data);
+        void Add(TestData data);
+        Task AddAsync(TestData data);
 
         Task Delete(TestData data);
 

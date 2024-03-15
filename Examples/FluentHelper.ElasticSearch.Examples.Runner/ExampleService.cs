@@ -56,7 +56,7 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
                     Console.WriteLine($"Adding 1 row..");
                     PressToContinue();
 
-                    await _testDataRepository.Add(_exampleData);
+                    _testDataRepository.Add(_exampleData);
                     await WaitIndexRefresh(stoppingToken);
 
                     testDataList = await _testDataRepository.GetAll();
