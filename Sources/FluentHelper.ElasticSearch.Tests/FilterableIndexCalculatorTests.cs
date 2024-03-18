@@ -8,12 +8,45 @@ namespace FluentHelper.ElasticSearch.Tests
     [TestFixture]
     public class FilterableIndexCalculatorTests
     {
+        [TestCase(true, "-*")]
+        [TestCase(false, "*")]
+        public void GetBaseIndexWildcard_Returns_CorrectString(bool withPostfixByFilter, string expectedWildcard)
+        {
+            var filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
+            filterableIndexCalculator.WithPostfixByEntity(entity => $"{entity.CreationTime:yyyy.MM.dd}");
+
+            if (withPostfixByFilter)
+                filterableIndexCalculator.WithPostfixByFilter(filter =>
+                {
+                    if (filter == null)
+                        return null;
+
+                    List<string> postFixIndexes = new List<string>();
+                    foreach (var date in filter)
+                        postFixIndexes.Add($"{date:yyyy.MM.dd}");
+
+                    return postFixIndexes;
+                });
+
+            var testEntity = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            string baseIndexWildcard = filterableIndexCalculator.GetBaseIndexWildcard();
+            ClassicAssert.AreEqual(expectedWildcard, baseIndexWildcard);
+        }
+
         [Test]
         public void GetIndexPostfixByEntity_Returns_CorrectIndex()
         {
-            var _filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
-            _filterableIndexCalculator.WithPostfixByEntity(entity => $"{entity.CreationTime:yyyy.MM.dd}");
-            _filterableIndexCalculator.WithPostfixByFilter(filter =>
+            var filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
+            filterableIndexCalculator.WithPostfixByEntity(entity => $"{entity.CreationTime:yyyy.MM.dd}");
+            filterableIndexCalculator.WithPostfixByFilter(filter =>
             {
                 if (filter == null)
                     return null;
@@ -36,14 +69,14 @@ namespace FluentHelper.ElasticSearch.Tests
 
             string expectedEntityIndex = $"{testEntity.CreationTime:yyyy.MM.dd}";
 
-            string entityIndex = _filterableIndexCalculator.GetIndexPostfixByEntity(testEntity);
+            string entityIndex = filterableIndexCalculator.GetIndexPostfixByEntity(testEntity);
             ClassicAssert.AreEqual(expectedEntityIndex, entityIndex);
         }
 
         [Test]
         public void GetIndexPostfixByEntity_When_PostFixNotSet_Returns_EmptyString()
         {
-            var _filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
+            var filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
 
             var testEntity = new TestEntity
             {
@@ -54,16 +87,16 @@ namespace FluentHelper.ElasticSearch.Tests
                 Active = true
             };
 
-            string entityIndex = _filterableIndexCalculator.GetIndexPostfixByEntity(testEntity);
+            string entityIndex = filterableIndexCalculator.GetIndexPostfixByEntity(testEntity);
             ClassicAssert.AreEqual(string.Empty, entityIndex);
         }
 
         [Test]
         public void GetIndexPostfixByFilter_When_FilterIsValid_Returns_ValidListOfIndexes()
         {
-            var _filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
+            var filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
 
-            _filterableIndexCalculator.WithPostfixByFilter(filter =>
+            filterableIndexCalculator.WithPostfixByFilter(filter =>
             {
                 if (filter == null)
                     return null;
@@ -77,7 +110,7 @@ namespace FluentHelper.ElasticSearch.Tests
 
             DateTime[] filter = [new DateTime(2023, 12, 1), new DateTime(2024, 1, 1)];
 
-            var queryIndexes = _filterableIndexCalculator.GetIndexPostfixByFilter(filter);
+            var queryIndexes = filterableIndexCalculator.GetIndexPostfixByFilter(filter);
             ClassicAssert.IsNotNull(queryIndexes);
             ClassicAssert.AreEqual(2, queryIndexes.Count());
 
@@ -88,8 +121,8 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void GetIndexPostfixByFilter_When_FilterIsNull_Returns_Star()
         {
-            var _filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
-            _filterableIndexCalculator.WithPostfixByFilter(filter =>
+            var filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
+            filterableIndexCalculator.WithPostfixByFilter(filter =>
             {
                 if (filter == null)
                     return null;
@@ -101,7 +134,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 return postFixIndexes;
             });
 
-            var queryIndexes = _filterableIndexCalculator.GetIndexPostfixByFilter(null);
+            var queryIndexes = filterableIndexCalculator.GetIndexPostfixByFilter(null);
             ClassicAssert.IsNotNull(queryIndexes);
             ClassicAssert.AreEqual(1, queryIndexes.Count());
             ClassicAssert.AreEqual("*", queryIndexes.First());
@@ -110,9 +143,9 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void GetIndexPostfixByFilter_When_GetIndexPostfixByFilterNotSet_Returns_ValidListOfIndexes()
         {
-            var _filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
+            var filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
 
-            var queryIndexes = _filterableIndexCalculator.GetIndexPostfixByFilter(null);
+            var queryIndexes = filterableIndexCalculator.GetIndexPostfixByFilter(null);
             ClassicAssert.IsNotNull(queryIndexes);
             ClassicAssert.AreEqual(1, queryIndexes.Count());
             ClassicAssert.AreEqual("*", queryIndexes.First());
@@ -121,9 +154,9 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void CalcQueryIndex_When_FilterIsInvalid_Throws()
         {
-            var _filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
-            _filterableIndexCalculator.WithPostfixByEntity(entity => $"{entity.CreationTime:yyyy.MM.dd}");
-            _filterableIndexCalculator.WithPostfixByFilter(filter =>
+            var filterableIndexCalculator = FilterableIndexCalculator<TestEntity, DateTime[]>.Create();
+            filterableIndexCalculator.WithPostfixByEntity(entity => $"{entity.CreationTime:yyyy.MM.dd}");
+            filterableIndexCalculator.WithPostfixByFilter(filter =>
             {
                 if (filter == null)
                     return null;
@@ -137,7 +170,7 @@ namespace FluentHelper.ElasticSearch.Tests
 
             int[] badFilter = [12];
 
-            Assert.Throws<InvalidCastException>(() => _filterableIndexCalculator.GetIndexPostfixByFilter(badFilter));
+            Assert.Throws<InvalidCastException>(() => filterableIndexCalculator.GetIndexPostfixByFilter(badFilter));
         }
     }
 }

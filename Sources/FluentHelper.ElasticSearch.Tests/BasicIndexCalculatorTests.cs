@@ -8,6 +8,18 @@ namespace FluentHelper.ElasticSearch.Tests
     [TestFixture]
     public class BasicIndexCalculatorTests
     {
+        [TestCase(true, "")]
+        [TestCase(false, "*")]
+        public void GetBaseIndexWildcard_Returns_CorrectString(bool isFixedName, string expectedWildcard)
+        {
+            var basicIndexCalculator = BasicIndexCalculator<TestEntity>.Create();
+            if (isFixedName)
+                basicIndexCalculator.WithFixedIndexName();
+
+            string baseIndexWildcard = basicIndexCalculator.GetBaseIndexWildcard();
+            ClassicAssert.AreEqual(expectedWildcard, baseIndexWildcard);
+        }
+
         [Test]
         public void CalcEntityIndex_Returns_EmptyString()
         {
