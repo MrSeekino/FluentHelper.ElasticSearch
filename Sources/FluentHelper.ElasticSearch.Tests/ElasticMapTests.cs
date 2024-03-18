@@ -1,4 +1,5 @@
-﻿using FluentHelper.ElasticSearch.Common;
+﻿using Elastic.Clients.Elasticsearch.Mapping;
+using FluentHelper.ElasticSearch.Common;
 using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Tests.Support;
 using FluentHelper.ElasticSearch.TestsSupport;
@@ -128,6 +129,49 @@ namespace FluentHelper.ElasticSearch.Tests
             elasticMap.IndexCalculator.Returns(indexCalculator);
 
             Assert.Throws<InvalidOperationException>(elasticMap.Verify);
+        }
+
+        [Test]
+        public void Verify_EnableTemplateCreation_WorksCorrectly()
+        {
+            string templateName = "testTemplateName";
+
+            EmptyMap emptyMap = new EmptyMap();
+            Assert.That(emptyMap.CreateTemplate, Is.EqualTo(false));
+            Assert.That(emptyMap.TemplateName, Is.EqualTo(string.Empty));
+
+            emptyMap.TestEnableTemplateCreation(templateName);
+            Assert.That(emptyMap.CreateTemplate, Is.EqualTo(true));
+            Assert.That(emptyMap.TemplateName, Is.EqualTo(templateName));
+        }
+
+        [Test]
+        public void Verify_Settings_WorksCorrectly()
+        {
+            EmptyMap emptyMap = new EmptyMap();
+            Assert.That(emptyMap.IndexSettings, Is.Null);
+
+            emptyMap.TestSettings(x => x.NumberOfShards(1).NumberOfReplicas(0));
+            Assert.That(emptyMap.IndexSettings, Is.Not.Null);
+        }
+
+        [Test]
+        public void Verify_Prop_WorksCorrectly()
+        {
+            EmptyMap emptyMap = new EmptyMap();
+            Assert.That(emptyMap.IndexMappings, Is.Null);
+
+            emptyMap.TestProp<KeywordProperty>(e => e.Name);
+            emptyMap.TestProp<TextProperty>(e => e.Description);
+
+            Assert.That(emptyMap.IndexMappings, Is.Not.Null);
+            Assert.That(emptyMap.IndexMappings!.Count(), Is.EqualTo(2));
+
+            var mapDictionary = emptyMap.IndexMappings!.ToDictionary(x => x.Key, y => y.Value);
+            Assert.That(mapDictionary.Keys.Any(k => k.Expression.ToString() == "e => e.Name"), Is.EqualTo(true));
+            Assert.That(mapDictionary.Keys.Any(k => k.Expression.ToString() == "e => e.Description"), Is.EqualTo(true));
+            Assert.That(mapDictionary.SingleOrDefault(k => k.Key.Expression.ToString() == "e => e.Name").Value.Type, Is.EqualTo("keyword"));
+            Assert.That(mapDictionary.SingleOrDefault(k => k.Key.Expression.ToString() == "e => e.Description").Value.Type, Is.EqualTo("text"));
         }
     }
 }

@@ -112,7 +112,7 @@ namespace FluentHelper.ElasticSearch.Common
         /// Set property mappings when creating new indexes and templates
         /// </summary>
         /// <param name="mappings">The ammpings to be applied to the index and/or index template</param>
-        public void Prop<PropertyType>(Expression<Func<TEntity, object>> expression) where PropertyType : IProperty
+        protected void Prop<PropertyType>(Expression<Func<TEntity, object>> expression) where PropertyType : IProperty
         {
             IndexMappings ??= new Properties();
 
