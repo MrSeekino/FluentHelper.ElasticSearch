@@ -80,7 +80,6 @@ namespace FluentHelper.ElasticSearch.Common
         /// <summary>
         /// Set the field considered as the Id in elasticsearch
         /// </summary>
-        /// <typeparam name="P">property type</typeparam>
         /// <param name="expression">the field to be the Id</param>
         protected void Id<P>(Expression<Func<TEntity, P>> expression)
         {
@@ -88,7 +87,7 @@ namespace FluentHelper.ElasticSearch.Common
         }
 
         /// <summary>
-        /// Enable the automatic creation of templates when indexing data
+        /// Enable the automatic creation of templates when indexing data. If enabled and template is not available, indexes created will end up without mapping.
         /// </summary>
         /// <param name="templateName">The name of the template. If not specified it will be automatically deducted from defined mappings</param>
         protected void EnableTemplateCreation(string templateName = "")
@@ -110,15 +109,15 @@ namespace FluentHelper.ElasticSearch.Common
         }
 
         /// <summary>
-        /// Set property mappings when creating new indexes
+        /// Set property mappings when creating new indexes and templates
         /// </summary>
         /// <param name="mappings">The ammpings to be applied to the index and/or index template</param>
-        protected void Mappings(Action<PropertiesDescriptor<TEntity>> mappings)
+        public void Prop<PropertyType>(Expression<Func<TEntity, object>> expression) where PropertyType : IProperty
         {
-            PropertiesDescriptor<TEntity> mappingDescriptor = new PropertiesDescriptor<TEntity>();
-            mappings(mappingDescriptor);
+            IndexMappings ??= new Properties();
 
-            IndexMappings = mappingDescriptor as Properties;
+            IProperty typeInstance = Activator.CreateInstance<PropertyType>();
+            IndexMappings!.Add(expression, typeInstance);
         }
 
         /// <summary>
