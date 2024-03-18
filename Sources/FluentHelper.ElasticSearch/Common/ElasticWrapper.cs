@@ -525,6 +525,32 @@ namespace FluentHelper.ElasticSearch.Common
             return result;
         }
 
+        public async Task<(int CreatedTemplates, int AlreadyExistingTemplates, int TotalDefinedTemplates)> CreateAllMappedIndexTemplateAsync()
+        {
+            (int CreatedTemplates, int AlreadyExistingTemplates, int TotalDefinedTemplates) result = new();
+
+            foreach (var (_, mapInstance) in _entityMappingList)
+            {
+                try
+                {
+                    if (mapInstance.CreateTemplate)
+                    {
+                        result.TotalDefinedTemplates++;
+
+                        bool templateCreated = await CreateIndexTemplateAsync(mapInstance);
+
+                        if (templateCreated)
+                            result.CreatedTemplates++;
+                        else
+                            result.AlreadyExistingTemplates++;
+                    }
+                }
+                catch (Exception) { }
+            }
+
+            return result;
+        }
+
         public bool CreateIndexTemplate<TEntity>(IElasticMap? mapInstance = null) where TEntity : class
         {
             mapInstance ??= _entityMappingList[typeof(TEntity)];
