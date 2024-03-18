@@ -3,20 +3,20 @@ using System.Collections.Generic;
 
 namespace FluentHelper.ElasticSearch.IndexCalculators
 {
-    internal sealed class FilterableIndexCalculator<T, TFilter> : IFilterableIndexCalculator<T, TFilter>
+    internal sealed class FilterableIndexCalculator<TEntity, TFilter> : IFilterableIndexCalculator<TEntity, TFilter> where TEntity : class
     {
-        private Func<T, string>? _getIndexPostfixByEntity;
+        private Func<TEntity, string>? _getIndexPostfixByEntity;
         private Func<TFilter?, IEnumerable<string>?>? _getIndexPostfixByFilter;
 
         private FilterableIndexCalculator()
         { }
 
-        public static IFilterableIndexCalculator<T, TFilter> Create()
+        public static IFilterableIndexCalculator<TEntity, TFilter> Create()
         {
-            return new FilterableIndexCalculator<T, TFilter>();
+            return new FilterableIndexCalculator<TEntity, TFilter>();
         }
 
-        public void WithPostfixByEntity(Func<T, string> getIndexPostfixByEntity)
+        public void WithPostfixByEntity(Func<TEntity, string> getIndexPostfixByEntity)
         {
             _getIndexPostfixByEntity = getIndexPostfixByEntity;
         }
@@ -34,7 +34,7 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
             return "-*";
         }
 
-        public string GetIndexPostfixByEntity(T input)
+        public string GetIndexPostfixByEntity(TEntity input)
         {
             if (_getIndexPostfixByEntity == null)
                 return string.Empty;

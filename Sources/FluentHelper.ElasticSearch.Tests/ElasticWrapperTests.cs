@@ -2,6 +2,7 @@
 using Elastic.Clients.Elasticsearch.Core.Search;
 using Elastic.Transport;
 using FluentHelper.ElasticSearch.Common;
+using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Interfaces;
 using FluentHelper.ElasticSearch.QueryParameters;
 using FluentHelper.ElasticSearch.TestsSupport;
@@ -46,7 +47,7 @@ namespace FluentHelper.ElasticSearch.Tests
             if (!string.IsNullOrWhiteSpace(suffix))
                 expectedIndexName += $"{suffix}-";
 
-            expectedIndexName += testEntityMap.IndexCalculator!.GetIndexPostfixByEntity(testEntityInstance);
+            expectedIndexName += ((IElasticIndexCalculator<TestEntity>?)testEntityMap.IndexCalculator)!.GetIndexPostfixByEntity(testEntityInstance);
             expectedIndexName = expectedIndexName.ToLower();
 
             string indexName = elasticWrapper.GetIndexName(testEntityInstance);
@@ -200,7 +201,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new IndexResponse { Result = Result.Created };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
             IndexName indexName = esWrapper.GetIndexName(testData);
@@ -238,7 +245,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new IndexResponse { Result = Result.Created };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsAsync(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
             IndexName indexName = esWrapper.GetIndexName(testData);
@@ -276,7 +289,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new IndexResponse { };
             var mockedResponse = TestableResponseFactory.CreateResponse(response, 400, false);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
             esClient.Index(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
@@ -325,7 +344,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new BulkResponse { Errors = false };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
             esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
@@ -376,7 +401,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new BulkResponse { Errors = false };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsAsync(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
             esClient.BulkAsync(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
@@ -450,7 +481,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new BulkResponse { Errors = false };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
             esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
@@ -463,6 +500,8 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void Verify_BulkAdd_DoesNothingWithInvalidResponse()
         {
+            int totalErrorMessages = 0;
+
             List<TestEntity> dataList = new()
             {
                 new TestEntity
@@ -497,20 +536,30 @@ namespace FluentHelper.ElasticSearch.Tests
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
             elasticConfig.BulkInsertChunkSize.Returns(2);
-            elasticConfig.LogAction.Returns((logLevel, ex, message, args) => { });
+            elasticConfig.LogAction.Returns((logLevel, ex, message, args) =>
+            {
+                if (logLevel == Microsoft.Extensions.Logging.LogLevel.Error)
+                    totalErrorMessages++;
+            });
 
             var response = new BulkResponse { Errors = true };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
             esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
             int totalAddedElements = esWrapper.BulkAdd(dataList);
-            elasticConfig.Received(4).LogAction!(Microsoft.Extensions.Logging.LogLevel.Error, Arg.Any<Exception?>(), Arg.Any<string>(), Arg.Any<object?[]>());
             esClient.Received(2).Bulk(Arg.Any<Action<BulkRequestDescriptor>>());
             Assert.That(totalAddedElements, Is.EqualTo(0));
+            Assert.That(totalErrorMessages, Is.EqualTo(2));
         }
 
         [Test]
@@ -641,7 +690,14 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new UpdateResponse<TestEntity> { Result = Result.Updated };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
             IndexName indexName = esWrapper.GetIndexName(testData);
@@ -679,7 +735,14 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new UpdateResponse<TestEntity> { Result = Result.Updated };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsAsync(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
             IndexName indexName = esWrapper.GetIndexName(testData);
@@ -717,7 +780,14 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new UpdateResponse<TestEntity> { Result = Result.Updated };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsAsync(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
             IndexName indexName = esWrapper.GetIndexName(testData);
@@ -755,7 +825,14 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new UpdateResponse<TestEntity> { Result = Result.NoOp };
             var mockedResponse = TestableResponseFactory.CreateResponse(response, 400, false);
 
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
+
             var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
             IndexName indexName = esWrapper.GetIndexName(testData);

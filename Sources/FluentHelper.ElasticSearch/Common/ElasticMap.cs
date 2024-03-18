@@ -8,22 +8,27 @@ using System.Linq.Expressions;
 
 namespace FluentHelper.ElasticSearch.Common
 {
-    public abstract class ElasticMap<TEntity> : IElasticMap<TEntity> where TEntity : class
+    public abstract class ElasticMap<TEntity> : IElasticMap where TEntity : class
     {
         public virtual string BaseIndexName { get; private set; }
-        public virtual IElasticIndexCalculator<TEntity>? IndexCalculator { get; private set; }
+        public virtual IElasticIndexCalculator? IndexCalculator { get; private set; }
         public virtual string IdPropertyName { get; private set; }
 
         public virtual bool CreateTemplate { get; private set; }
+        public virtual string TemplateName { get; private set; }
+
         public virtual IndexSettingsDescriptor? IndexSettings { get; private set; }
-        public virtual PropertiesDescriptor<TEntity>? IndexMappings { get; private set; }
+        public virtual Properties? IndexMappings { get; private set; }
 
         protected ElasticMap()
         {
             BaseIndexName = string.Empty;
             IndexCalculator = null;
             IdPropertyName = string.Empty;
+
             CreateTemplate = false;
+            TemplateName = string.Empty;
+
             IndexSettings = null;
             IndexMappings = null;
         }
@@ -85,15 +90,17 @@ namespace FluentHelper.ElasticSearch.Common
         /// <summary>
         /// Enable the automatic creation of templates when indexing data
         /// </summary>
-        protected void EnableTemplateCreation()
+        /// <param name="templateName">The name of the template. If not specified it will be automatically deducted from defined mappings</param>
+        protected void EnableTemplateCreation(string templateName = "")
         {
             CreateTemplate = true;
+            TemplateName = templateName;
         }
 
         /// <summary>
         /// Set settings for indexes and template when creating new indexes
         /// </summary>
-        /// <param name="settings"></param>
+        /// <param name="settings">The settings to be applied to the index and/or index template</param>
         protected void Settings(Action<IndexSettingsDescriptor> settings)
         {
             IndexSettingsDescriptor settingsDescriptor = new IndexSettingsDescriptor();
@@ -105,19 +112,19 @@ namespace FluentHelper.ElasticSearch.Common
         /// <summary>
         /// Set property mappings when creating new indexes
         /// </summary>
-        /// <param name="mappings"></param>
+        /// <param name="mappings">The ammpings to be applied to the index and/or index template</param>
         protected void Mappings(Action<PropertiesDescriptor<TEntity>> mappings)
         {
             PropertiesDescriptor<TEntity> mappingDescriptor = new PropertiesDescriptor<TEntity>();
             mappings(mappingDescriptor);
 
-            IndexMappings = mappingDescriptor;
+            IndexMappings = mappingDescriptor as Properties;
         }
 
         /// <summary>
         /// Get the current true type of the mapping
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The type of the mapped entity</returns>
         public Type GetMappingType()
         {
             return typeof(TEntity);
@@ -126,7 +133,7 @@ namespace FluentHelper.ElasticSearch.Common
         /// <summary>
         /// Apply the map to the ElasticsearchClient settings. Automatically used when building the wrapper
         /// </summary>
-        /// <param name="esSettings"></param>
+        /// <param name="esSettings">The current elasticsearchclient settings</param>
         public void ApplyMapping(ElasticsearchClientSettings esSettings)
         {
             esSettings.DefaultMappingFor<TEntity>(x =>
@@ -151,6 +158,9 @@ namespace FluentHelper.ElasticSearch.Common
                 throw new InvalidOperationException($"IdProperty has not been set for {typeof(TEntity).Name}");
         }
 
+        /// <summary>
+        /// Implement the method to set the needed mappings
+        /// </summary>
         public abstract void Map();
     }
 }

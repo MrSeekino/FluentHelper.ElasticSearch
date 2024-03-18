@@ -2,6 +2,7 @@
 using Elastic.Clients.Elasticsearch.IndexManagement;
 using Elastic.Transport;
 using Elastic.Transport.Products.Elasticsearch;
+using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Interfaces;
 using FluentHelper.ElasticSearch.QueryParameters;
 using Newtonsoft.Json;
@@ -79,14 +80,14 @@ namespace FluentHelper.ElasticSearch.Common
 
         public void Add<TEntity>(TEntity inputData) where TEntity : class
         {
-            CreateIndex(inputData);
+            CreateIndexFromData(inputData);
             var addResponse = GetOrCreateClient().Index(inputData, GetIndexName(inputData));
             CheckAddResponse(inputData, addResponse);
         }
 
         public async Task AddAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class
         {
-            await CreateIndexAsync(inputData);
+            await CreateIndexFromDataAsync(inputData);
             var addResponse = await GetOrCreateClient().IndexAsync(inputData, GetIndexName(inputData), cancellationToken);
             CheckAddResponse(inputData, addResponse);
         }
@@ -108,7 +109,7 @@ namespace FluentHelper.ElasticSearch.Common
             int totalIndexedElements = 0;
             foreach (var groupedInputData in groupedInputList)
             {
-                CreateIndex(groupedInputData.IndexName);
+                CreateIndex<TEntity>(groupedInputData.IndexName);
                 var bulkResponse = GetOrCreateClient().Bulk(b => b.Index(groupedInputData.IndexName).IndexMany(groupedInputData.Items));
                 int addedItems = CheckBulkAddResponse(bulkResponse, groupedInputData.Items.Count, groupedInputData.IndexName);
                 totalIndexedElements += addedItems;
@@ -124,7 +125,7 @@ namespace FluentHelper.ElasticSearch.Common
             int totalIndexedElements = 0;
             foreach (var groupedInputData in groupedInputList)
             {
-                await CreateIndexAsync(groupedInputData.IndexName);
+                await CreateIndexAsync<TEntity>(groupedInputData.IndexName);
                 var bulkResponse = await GetOrCreateClient().BulkAsync(b => b.Index(groupedInputData.IndexName).IndexMany(groupedInputData.Items), cancellationToken).ConfigureAwait(false);
                 int addedItems = CheckBulkAddResponse(bulkResponse, groupedInputData.Items.Count, groupedInputData.IndexName);
                 totalIndexedElements += addedItems;
@@ -168,7 +169,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         private int CheckBulkAddResponse(BulkResponse bulkResponse, int addNumber, string indexName)
         {
-            AfterQueryResponse(bulkResponse);
+            AfterQueryResponse(bulkResponse, false);
 
             if (!bulkResponse.IsValidResponse || bulkResponse.Errors)
             {
@@ -184,7 +185,7 @@ namespace FluentHelper.ElasticSearch.Common
         public void AddOrUpdate<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts = 0) where TEntity : class
         {
             var addOrUpdateParameters = GetAddOrUpdatedParameters(inputData, fieldUpdaterExpr, retryOnConflicts);
-            CreateIndex(addOrUpdateParameters.IndexName);
+            CreateIndex<TEntity>(addOrUpdateParameters.IndexName);
             var updateResponse = GetOrCreateClient().Update(addOrUpdateParameters.IndexName, addOrUpdateParameters.Id, addOrUpdateParameters.ConfigureRequest);
             CheckUpdateResponse(inputData, updateResponse);
         }
@@ -195,14 +196,14 @@ namespace FluentHelper.ElasticSearch.Common
         public async Task AddOrUpdateAsync<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts, CancellationToken cancellationToken = default) where TEntity : class
         {
             var addOrUpdateParameters = GetAddOrUpdatedParameters(inputData, fieldUpdaterExpr, retryOnConflicts);
-            await CreateIndexAsync(addOrUpdateParameters.IndexName);
+            await CreateIndexAsync<TEntity>(addOrUpdateParameters.IndexName);
             var updateResponse = await GetOrCreateClient().UpdateAsync(addOrUpdateParameters.IndexName, addOrUpdateParameters.Id, addOrUpdateParameters.ConfigureRequest, cancellationToken).ConfigureAwait(false);
             CheckUpdateResponse(inputData, updateResponse);
         }
 
         private (string IndexName, Id Id, Action<UpdateRequestDescriptor<TEntity, ExpandoObject>> ConfigureRequest) GetAddOrUpdatedParameters<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts) where TEntity : class
         {
-            string indexName = GetIndexName(inputData, out IElasticMap<TEntity> mapInstance);
+            string indexName = GetIndexName(inputData, out IElasticMap mapInstance);
 
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
@@ -326,7 +327,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         private (string IndexName, Id Id) GetDeleteParameters<TEntity>(TEntity inputData) where TEntity : class
         {
-            string indexName = GetIndexName(inputData, out IElasticMap<TEntity> mapInstance);
+            string indexName = GetIndexName(inputData, out IElasticMap mapInstance);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
             return new(indexName, inputId!.ToString()!);
@@ -379,7 +380,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         private (string IndexName, Id Id) GetIndexAndIdParameters<TEntity>(TEntity inputData) where TEntity : class
         {
-            string indexName = GetIndexName(inputData, out IElasticMap<TEntity> mapInstance);
+            string indexName = GetIndexName(inputData, out IElasticMap mapInstance);
             var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
 
             return new(indexName, inputId!.ToString()!);
@@ -392,15 +393,15 @@ namespace FluentHelper.ElasticSearch.Common
             return getResponse.Source;
         }
 
-        private string GetIndexName<TEntity>(TEntity inputData, out IElasticMap<TEntity> mapInstance) where TEntity : class
+        private string GetIndexName<TEntity>(TEntity inputData, out IElasticMap mapInstance) where TEntity : class
         {
-            mapInstance = (IElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
+            mapInstance = _entityMappingList[typeof(TEntity)];
             string indexName = string.IsNullOrWhiteSpace(_elasticConfig.IndexPrefix) ? $"{mapInstance.BaseIndexName}" : $"{_elasticConfig.IndexPrefix}-{mapInstance.BaseIndexName}";
 
             if (!string.IsNullOrWhiteSpace(_elasticConfig.IndexSuffix))
                 indexName += $"-{_elasticConfig.IndexSuffix}";
 
-            string indexCalculated = mapInstance.IndexCalculator!.GetIndexPostfixByEntity(inputData);
+            string indexCalculated = ((IElasticIndexCalculator<TEntity>?)mapInstance.IndexCalculator)!.GetIndexPostfixByEntity(inputData);
             if (!string.IsNullOrWhiteSpace(indexCalculated))
                 indexName += $"-{indexCalculated}";
 
@@ -417,7 +418,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         public string GetIndexNamesForQueries<TEntity>(object? baseObjectFilter) where TEntity : class
         {
-            var mapInstance = (IElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
+            var mapInstance = _entityMappingList[typeof(TEntity)];
             string fixedIndexName = string.IsNullOrWhiteSpace(_elasticConfig.IndexPrefix) ? $"{mapInstance.BaseIndexName}" : $"{_elasticConfig.IndexPrefix}-{mapInstance.BaseIndexName}";
 
             if (!string.IsNullOrWhiteSpace(_elasticConfig.IndexSuffix))
@@ -430,46 +431,43 @@ namespace FluentHelper.ElasticSearch.Common
             return indexNames;
         }
 
-        public void CreateIndex<TEntity>(TEntity inputData) where TEntity : class
-            => CreateIndex(GetIndexName(inputData));
+        public void CreateIndexFromData<TEntity>(TEntity inputData) where TEntity : class
+        {
+            string indexName = GetIndexName(inputData);
+            CreateIndex<TEntity>(indexName);
+        }
 
         public void CreateIndex<TEntity>(string indexName) where TEntity : class
         {
-            var mapInstance = (IElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-
             var existResponse = GetOrCreateClient().Indices.Exists(indexName);
             if (!CheckIndexExistsResponse(existResponse))
             {
-                if (mapInstance.CreateTemplate)
-                    CreateIndexTemplate<TEntity>();
-
-                var requestDescriptor = GetCreateIndexRequestParameters(indexName, mapInstance);
+                var requestDescriptor = GetCreateIndexRequestParameters<TEntity>(indexName);
                 var createIndexReponse = GetOrCreateClient().Indices.Create(requestDescriptor);
                 CheckCreateIndexResponse<TEntity>(createIndexReponse);
             }
         }
 
-        public async Task CreateIndexAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class
-            => await CreateIndexAsync(GetIndexName(inputData), cancellationToken);
+        public async Task CreateIndexFromDataAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class
+        {
+            string indexName = GetIndexName(inputData);
+            await CreateIndexAsync<TEntity>(indexName, cancellationToken);
+        }
 
         public async Task CreateIndexAsync<TEntity>(string indexName, CancellationToken cancellationToken = default) where TEntity : class
         {
-            var mapInstance = (IElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
-
             var existResponse = await GetOrCreateClient().Indices.ExistsAsync(indexName, cancellationToken);
             if (!CheckIndexExistsResponse(existResponse))
             {
-                if (mapInstance.CreateTemplate)
-                    await CreateIndexTemplateAsync<TEntity>(cancellationToken);
-
-                var requestDescriptor = GetCreateIndexRequestParameters(indexName, mapInstance);
+                var requestDescriptor = GetCreateIndexRequestParameters<TEntity>(indexName);
                 var createIndexReponse = await GetOrCreateClient().Indices.CreateAsync(requestDescriptor, cancellationToken);
                 CheckCreateIndexResponse<TEntity>(createIndexReponse);
             }
         }
 
-        private CreateIndexRequestDescriptor GetCreateIndexRequestParameters<TEntity>(string indexName, IElasticMap<TEntity> mapInstance) where TEntity : class
+        private CreateIndexRequestDescriptor GetCreateIndexRequestParameters<TEntity>(string indexName) where TEntity : class
         {
+            var mapInstance = _entityMappingList[typeof(TEntity)];
             CreateIndexRequestDescriptor createIndexRequestDescriptor = new(indexName);
 
             if (!mapInstance.CreateTemplate)
@@ -491,7 +489,7 @@ namespace FluentHelper.ElasticSearch.Common
             return existsReponse.Exists;
         }
 
-        private void CheckCreateIndexResponse<TEntity>(Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexResponse createIndexReponse) where TEntity : class
+        private void CheckCreateIndexResponse<TEntity>(CreateIndexResponse createIndexReponse) where TEntity : class
         {
             AfterQueryResponse(createIndexReponse);
 
@@ -501,9 +499,44 @@ namespace FluentHelper.ElasticSearch.Common
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Index {indexName} created", [createIndexReponse.Index]);
         }
 
-        public void CreateIndexTemplate<TEntity>() where TEntity : class
+        public (int CreatedTemplates, int AlreadyExistingTemplates, int TotalDefinedTemplates) CreateAllMappedIndexTemplate()
         {
-            var mapInstance = (IElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
+            (int CreatedTemplates, int AlreadyExistingTemplates, int TotalDefinedTemplates) result = new();
+
+            foreach (var (_, mapInstance) in _entityMappingList)
+            {
+                try
+                {
+                    if (mapInstance.CreateTemplate)
+                    {
+                        result.TotalDefinedTemplates++;
+
+                        bool templateCreated = CreateIndexTemplate(mapInstance);
+
+                        if (templateCreated)
+                            result.CreatedTemplates++;
+                        else
+                            result.AlreadyExistingTemplates++;
+                    }
+                }
+                catch (Exception) { }
+            }
+
+            return result;
+        }
+
+        public bool CreateIndexTemplate<TEntity>(IElasticMap? mapInstance = null) where TEntity : class
+        {
+            mapInstance ??= _entityMappingList[typeof(TEntity)];
+
+            if (mapInstance.GetMappingType() != typeof(TEntity))
+                throw new InvalidOperationException($"'MapInstance' and 'TEntity' must be of the same type");
+
+            return CreateIndexTemplate(mapInstance);
+        }
+
+        public bool CreateIndexTemplate(IElasticMap mapInstance)
+        {
             var templateParameters = GetCreateTemplateParameters(mapInstance);
 
             var existsIndexTemplateResponse = GetOrCreateClient().Indices.ExistsIndexTemplate(templateParameters.TemplateName);
@@ -511,13 +544,28 @@ namespace FluentHelper.ElasticSearch.Common
             {
                 var requestDescriptor = GetIndexTemplateRequest(templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
                 var putTemplateResponse = GetOrCreateClient().Indices.PutIndexTemplate(requestDescriptor);
-                CheckPutIndexTemplateResponse<TEntity>(putTemplateResponse, templateParameters.TemplateName, templateParameters.IndexPatterns);
+                CheckPutIndexTemplateResponse(putTemplateResponse, templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
             }
+
+            return false;
         }
 
-        public async Task CreateIndexTemplateAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class
+        public async Task<bool> CreateIndexTemplateAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class
+            => await CreateIndexTemplateAsync<TEntity>(null, cancellationToken);
+
+        public async Task<bool> CreateIndexTemplateAsync<TEntity>(IElasticMap? mapInstance, CancellationToken cancellationToken = default) where TEntity : class
         {
-            var mapInstance = (IElasticMap<TEntity>)_entityMappingList[typeof(TEntity)];
+            mapInstance ??= _entityMappingList[typeof(TEntity)];
+
+            if (mapInstance.GetMappingType() != typeof(TEntity))
+                throw new InvalidOperationException($"'MapInstance' and 'TEntity' must be of the same type");
+
+            var templateCreated = await CreateIndexTemplateAsync(mapInstance, cancellationToken);
+            return templateCreated;
+        }
+
+        public async Task<bool> CreateIndexTemplateAsync(IElasticMap mapInstance, CancellationToken cancellationToken = default)
+        {
             var templateParameters = GetCreateTemplateParameters(mapInstance);
 
             var existsIndexTemplateResponse = await GetOrCreateClient().Indices.ExistsIndexTemplateAsync(templateParameters.TemplateName, cancellationToken);
@@ -525,25 +573,26 @@ namespace FluentHelper.ElasticSearch.Common
             {
                 var requestDescriptor = GetIndexTemplateRequest(templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
                 var putTemplateResponse = await GetOrCreateClient().Indices.PutIndexTemplateAsync(requestDescriptor, cancellationToken);
-                CheckPutIndexTemplateResponse<TEntity>(putTemplateResponse, templateParameters.TemplateName, templateParameters.IndexPatterns);
+                CheckPutIndexTemplateResponse(putTemplateResponse, templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
+                return true;
             }
+
+            return false;
         }
 
-        private (string TemplateName, string IndexPatterns) GetCreateTemplateParameters<TEntity>(IElasticMap<TEntity> mapInstance) where TEntity : class
+        private (string TemplateName, string IndexPatterns) GetCreateTemplateParameters(IElasticMap mapInstance)
         {
             string baseIndexPattern = string.IsNullOrWhiteSpace(_elasticConfig.IndexPrefix) ? $"{mapInstance.BaseIndexName}" : $"{_elasticConfig.IndexPrefix}-{mapInstance.BaseIndexName}";
 
-            string templateName = $"{baseIndexPattern}_template";
+            string templateName = string.IsNullOrWhiteSpace(mapInstance.TemplateName) ? $"{baseIndexPattern}_template" : mapInstance.TemplateName;
             string indexPatterns = $"{baseIndexPattern}{mapInstance.IndexCalculator!.GetBaseIndexWildcard()}";
-
 
             return new(templateName, indexPatterns);
         }
 
-        private PutIndexTemplateRequestDescriptor GetIndexTemplateRequest<TEntity>(string templateName, string indexPatterns, IElasticMap<TEntity> mapInstance) where TEntity : class
+        private PutIndexTemplateRequestDescriptor GetIndexTemplateRequest(string templateName, string indexPatterns, IElasticMap mapInstance)
         {
             PutIndexTemplateRequestDescriptor requestDescriptor = new(templateName);
-
             requestDescriptor.IndexPatterns(indexPatterns);
 
             requestDescriptor.Template(t =>
@@ -558,19 +607,19 @@ namespace FluentHelper.ElasticSearch.Common
             return requestDescriptor;
         }
 
-        private bool CheckIndexTemplateExistsResponse(Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse existsReponse)
+        private bool CheckIndexTemplateExistsResponse(ExistsIndexTemplateResponse existsReponse)
         {
             AfterQueryResponse(existsReponse, false);
 
             return existsReponse.Exists;
         }
 
-        private void CheckPutIndexTemplateResponse<TEntity>(Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateResponse putTemplateResponse, string templateName, string indexPatterns) where TEntity : class
+        private void CheckPutIndexTemplateResponse(PutIndexTemplateResponse putTemplateResponse, string templateName, string indexPatterns, IElasticMap mapInstance)
         {
             AfterQueryResponse(putTemplateResponse);
 
             if (!putTemplateResponse.IsValidResponse)
-                throw new InvalidOperationException($"Could not create template {templateName} for {typeof(TEntity).Name} with patterns {indexPatterns}", new Exception(JsonConvert.SerializeObject(putTemplateResponse)));
+                throw new InvalidOperationException($"Could not create template {templateName} for {mapInstance.GetMappingType().Name} with patterns {indexPatterns}", new Exception(JsonConvert.SerializeObject(putTemplateResponse)));
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Template {templateName} created", [templateName]);
         }

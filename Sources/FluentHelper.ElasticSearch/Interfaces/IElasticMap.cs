@@ -3,24 +3,21 @@ using Elastic.Clients.Elasticsearch.IndexManagement;
 using Elastic.Clients.Elasticsearch.Mapping;
 using FluentHelper.ElasticSearch.IndexCalculators;
 using System;
-using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 namespace FluentHelper.ElasticSearch.Interfaces
 {
-    internal interface IElasticMap<TEntity> : IElasticMap
-    {
-        IElasticIndexCalculator<TEntity>? IndexCalculator { get; }
-        PropertiesDescriptor<TEntity>? IndexMappings { get; }
-    }
-
-    internal interface IElasticMap
+    public interface IElasticMap
     {
         string BaseIndexName { get; }
         string IdPropertyName { get; }
 
+        IElasticIndexCalculator? IndexCalculator { get; }
+
         bool CreateTemplate { get; }
+        string TemplateName { get; }
+
         IndexSettingsDescriptor? IndexSettings { get; }
+        Properties? IndexMappings { get; }
 
         Type GetMappingType();
 

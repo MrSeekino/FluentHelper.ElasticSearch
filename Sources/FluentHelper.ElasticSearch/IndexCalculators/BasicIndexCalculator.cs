@@ -2,22 +2,22 @@
 
 namespace FluentHelper.ElasticSearch.IndexCalculators
 {
-    internal sealed class BasicIndexCalculator<T> : IBasicIndexCalculator<T>
+    internal sealed class BasicIndexCalculator<TEntity> : IBasicIndexCalculator<TEntity> where TEntity : class
     {
         bool _fixedIndex;
 
         private BasicIndexCalculator()
         { }
 
-        public static IBasicIndexCalculator<T> Create()
+        public static IBasicIndexCalculator<TEntity> Create()
         {
-            return new BasicIndexCalculator<T>()
+            return new BasicIndexCalculator<TEntity>()
             {
                 _fixedIndex = false
             };
         }
 
-        public IBasicIndexCalculator<T> WithFixedIndexName()
+        public IBasicIndexCalculator<TEntity> WithFixedIndexName()
         {
             _fixedIndex = true;
             return this;
@@ -31,7 +31,7 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
             return "*";
         }
 
-        public string GetIndexPostfixByEntity(T input)
+        public string GetIndexPostfixByEntity(TEntity input)
         {
             return string.Empty;
         }
