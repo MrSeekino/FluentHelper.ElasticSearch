@@ -87,7 +87,7 @@ namespace FluentHelper.ElasticSearch.Common
 
         public async Task AddAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class
         {
-            await CreateIndexFromDataAsync(inputData);
+            await CreateIndexFromDataAsync(inputData, cancellationToken);
             var addResponse = await GetOrCreateClient().IndexAsync(inputData, GetIndexName(inputData), cancellationToken);
             CheckAddResponse(inputData, addResponse);
         }
@@ -125,7 +125,7 @@ namespace FluentHelper.ElasticSearch.Common
             int totalIndexedElements = 0;
             foreach (var groupedInputData in groupedInputList)
             {
-                await CreateIndexAsync<TEntity>(groupedInputData.IndexName);
+                await CreateIndexAsync<TEntity>(groupedInputData.IndexName, cancellationToken);
                 var bulkResponse = await GetOrCreateClient().BulkAsync(b => b.Index(groupedInputData.IndexName).IndexMany(groupedInputData.Items), cancellationToken).ConfigureAwait(false);
                 int addedItems = CheckBulkAddResponse(bulkResponse, groupedInputData.Items.Count, groupedInputData.IndexName);
                 totalIndexedElements += addedItems;
@@ -196,7 +196,7 @@ namespace FluentHelper.ElasticSearch.Common
         public async Task AddOrUpdateAsync<TEntity>(TEntity inputData, Func<IElasticFieldUpdater<TEntity>, IElasticFieldUpdater<TEntity>> fieldUpdaterExpr, int retryOnConflicts, CancellationToken cancellationToken = default) where TEntity : class
         {
             var addOrUpdateParameters = GetAddOrUpdatedParameters(inputData, fieldUpdaterExpr, retryOnConflicts);
-            await CreateIndexAsync<TEntity>(addOrUpdateParameters.IndexName);
+            await CreateIndexAsync<TEntity>(addOrUpdateParameters.IndexName, cancellationToken);
             var updateResponse = await GetOrCreateClient().UpdateAsync(addOrUpdateParameters.IndexName, addOrUpdateParameters.Id, addOrUpdateParameters.ConfigureRequest, cancellationToken).ConfigureAwait(false);
             CheckUpdateResponse(inputData, updateResponse);
         }
@@ -313,24 +313,16 @@ namespace FluentHelper.ElasticSearch.Common
 
         public void Delete<TEntity>(TEntity inputData) where TEntity : class
         {
-            var deleteParameters = GetDeleteParameters(inputData);
+            var deleteParameters = GetIndexAndIdParameters(inputData);
             var deleteResponse = GetOrCreateClient().Delete<TEntity>(deleteParameters.IndexName, deleteParameters.Id, r => r.Refresh(Refresh.True));
             CheckDeleteResponse(inputData, deleteResponse);
         }
 
         public async Task DeleteAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class
         {
-            var deleteParameters = GetDeleteParameters(inputData);
+            var deleteParameters = GetIndexAndIdParameters(inputData);
             var deleteResponse = await GetOrCreateClient().DeleteAsync<TEntity>(deleteParameters.IndexName, deleteParameters.Id, r => r.Refresh(Refresh.True), cancellationToken).ConfigureAwait(false);
             CheckDeleteResponse(inputData, deleteResponse);
-        }
-
-        private (string IndexName, Id Id) GetDeleteParameters<TEntity>(TEntity inputData) where TEntity : class
-        {
-            string indexName = GetIndexName(inputData, out IElasticMap mapInstance);
-            var inputId = inputData.GetFieldValue(mapInstance.IdPropertyName);
-
-            return new(indexName, inputId!.ToString()!);
         }
 
         private void CheckDeleteResponse<TEntity>(TEntity inputData, DeleteResponse deleteResponse) where TEntity : class
@@ -519,7 +511,7 @@ namespace FluentHelper.ElasticSearch.Common
                             result.AlreadyExistingTemplates++;
                     }
                 }
-                catch (Exception) { }
+                catch { }
             }
 
             return result;
@@ -542,7 +534,7 @@ namespace FluentHelper.ElasticSearch.Common
                     else
                         result.AlreadyExistingTemplates++;
                 }
-                catch (Exception) { }
+                catch { }
             }
 
             return result;
@@ -613,7 +605,7 @@ namespace FluentHelper.ElasticSearch.Common
             return new(templateName, indexPatterns);
         }
 
-        private PutIndexTemplateRequestDescriptor GetIndexTemplateRequest(string templateName, string indexPatterns, IElasticMap mapInstance)
+        private static PutIndexTemplateRequestDescriptor GetIndexTemplateRequest(string templateName, string indexPatterns, IElasticMap mapInstance)
         {
             PutIndexTemplateRequestDescriptor requestDescriptor = new(templateName);
             requestDescriptor.IndexPatterns(indexPatterns);

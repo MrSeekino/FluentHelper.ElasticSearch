@@ -19,7 +19,7 @@ namespace FluentHelper.ElasticSearch.IndexCalculators
         IEnumerable<string> GetIndexPostfixByFilter(object? baseObjectFilter);
     }
 
-    public interface IElasticIndexCalculator<TEntity> : IElasticIndexCalculator where TEntity : class
+    public interface IElasticIndexCalculator<in TEntity> : IElasticIndexCalculator where TEntity : class
     {
         /// <summary>
         /// Calculate the postfix to be added to index calculation for the type based on the current input

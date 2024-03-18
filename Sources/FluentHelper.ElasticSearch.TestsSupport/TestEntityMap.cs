@@ -17,7 +17,7 @@ namespace FluentHelper.ElasticSearch.TestsSupport
                     if (filter == null)
                         return null;
 
-                    if (filter != null && filter.StartTime.HasValue && filter.EndTime.HasValue)
+                    if (filter.StartTime.HasValue && filter.EndTime.HasValue)
                     {
                         List<string> indexNames = new();
 
