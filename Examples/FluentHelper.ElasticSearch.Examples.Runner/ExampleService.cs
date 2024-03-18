@@ -1,5 +1,6 @@
 ﻿using FluentHelper.ElasticSearch.Examples.Models;
 using FluentHelper.ElasticSearch.Examples.Repositories;
+using FluentHelper.ElasticSearch.Interfaces;
 using Microsoft.Extensions.Hosting;
 
 namespace FluentHelper.ElasticSearch.Examples.Runner
@@ -9,14 +10,16 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
         const bool _enablePressOnContinue = true;
         const int _indexRefreshTimeMs = 5000;
 
+        private readonly IElasticWrapper _elasticWrapper;
         private readonly ITestDataRepository _testDataRepository;
 
         private readonly TestData _exampleData;
         private readonly TestData _secondData;
         private readonly TestData _thirdData;
 
-        public ExampleService(ITestDataRepository testDataRepository)
+        public ExampleService(IElasticWrapper elasticWrapper, ITestDataRepository testDataRepository)
         {
+            _elasticWrapper = elasticWrapper;
             _testDataRepository = testDataRepository;
 
             _exampleData = new TestData
@@ -50,6 +53,9 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
             {
                 try
                 {
+                    var result = await _elasticWrapper.CreateAllMappedIndexTemplateAsync();
+                    Console.WriteLine($"Template creation results: CreatedTemplates={result.CreatedTemplates}, AlreadyExistingTemplates={result.AlreadyExistingTemplates}, TotalDefinedTemplates={result.TotalDefinedTemplates}");
+
                     var testDataList = await _testDataRepository.GetAll();
                     Console.WriteLine($"Index contains {testDataList.Count()} documents");
 
