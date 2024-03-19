@@ -206,12 +206,12 @@ namespace FluentHelper.ElasticSearch.Interfaces
         /// Create templates for all the defined mappings
         /// </summary>
         /// <returns>the nuber of templates created and the number of total templates defined</returns>
-        (int CreatedTemplates, int AlreadyExistingTemplates, int TotalDefinedTemplates) CreateAllMappedIndexTemplate();
+        (int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates) CreateAllMappedIndexTemplate();
         /// <summary>
         /// Create templates for all the defined mappings
         /// </summary>
         /// <returns>the nuber of templates created and the number of total templates defined</returns>
-        Task<(int CreatedTemplates, int AlreadyExistingTemplates, int TotalDefinedTemplates)> CreateAllMappedIndexTemplateAsync();
+        Task<(int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates)> CreateAllMappedIndexTemplateAsync();
 
         /// <summary>
         /// Create an index template compliant to the configured mapping for the type

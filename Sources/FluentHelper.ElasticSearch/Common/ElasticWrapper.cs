@@ -491,9 +491,9 @@ namespace FluentHelper.ElasticSearch.Common
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Index {indexName} created", [createIndexReponse.Index]);
         }
 
-        public (int CreatedTemplates, int AlreadyExistingTemplates, int TotalDefinedTemplates) CreateAllMappedIndexTemplate()
+        public (int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates) CreateAllMappedIndexTemplate()
         {
-            (int CreatedTemplates, int AlreadyExistingTemplates, int TotalDefinedTemplates) result = new();
+            (int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates) result = new();
 
             foreach (var (_, mapInstance) in _entityMappingList)
             {
@@ -511,15 +511,18 @@ namespace FluentHelper.ElasticSearch.Common
                             result.AlreadyExistingTemplates++;
                     }
                 }
-                catch { }
+                catch
+                {
+                    result.FailedTemplates++;
+                }
             }
 
             return result;
         }
 
-        public async Task<(int CreatedTemplates, int AlreadyExistingTemplates, int TotalDefinedTemplates)> CreateAllMappedIndexTemplateAsync()
+        public async Task<(int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates)> CreateAllMappedIndexTemplateAsync()
         {
-            (int CreatedTemplates, int AlreadyExistingTemplates, int TotalDefinedTemplates) result = new();
+            (int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates) result = new();
 
             foreach (var (_, mapInstance) in _entityMappingList.Where(x => x.Value.CreateTemplate))
             {
@@ -534,7 +537,10 @@ namespace FluentHelper.ElasticSearch.Common
                     else
                         result.AlreadyExistingTemplates++;
                 }
-                catch { }
+                catch
+                {
+                    result.FailedTemplates++;
+                }
             }
 
             return result;
