@@ -193,7 +193,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -237,7 +236,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -281,7 +279,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -335,7 +332,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -392,7 +388,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -421,7 +416,6 @@ namespace FluentHelper.ElasticSearch.Tests
         public void Verify_BulkAdd_DoesNothingWithEmptyList()
         {
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -472,7 +466,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -531,7 +524,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -575,7 +567,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -613,7 +604,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -651,7 +641,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -682,7 +671,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -727,7 +715,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -772,7 +759,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -817,7 +803,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -881,7 +866,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -948,7 +932,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1018,7 +1001,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1085,7 +1067,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1118,7 +1099,6 @@ namespace FluentHelper.ElasticSearch.Tests
         public void Verify_Count_WorksCorrectly()
         {
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1142,7 +1122,6 @@ namespace FluentHelper.ElasticSearch.Tests
         public void Verify_Count_WorksCorrectly_WithQueryDescriptor()
         {
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1169,7 +1148,6 @@ namespace FluentHelper.ElasticSearch.Tests
         public async Task Verify_CountAsync_WorksCorrectly()
         {
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1193,7 +1171,6 @@ namespace FluentHelper.ElasticSearch.Tests
         public void Verify_Count_ThrowsWithInvalidResponse()
         {
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1224,7 +1201,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1258,7 +1234,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1292,7 +1267,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1337,7 +1311,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1374,7 +1347,6 @@ namespace FluentHelper.ElasticSearch.Tests
             string indexName = "An_Index";
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1415,7 +1387,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1447,12 +1418,74 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
-        public async Task Verify_CreateIndexAsync_WorksCorrectly()
+        public void Verify_CreateIndex_ReturnsFalseWhenAlreadyExist()
         {
             string indexName = "An_Index";
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse).AndDoes(x =>
+            {
+                var indices = x.Arg<Indices>();
+                Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
+            });
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var result = esWrapper.CreateIndex<TestEntity>(indexName);
+            Assert.That(result, Is.EqualTo(false));
+
+            esIndicesClient.Received(1).Exists(Arg.Any<Indices>());
+            esIndicesClient.Received(0).Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+        }
+
+        [Test]
+        public void Verify_CreateIndex_ThrowsOnInvalidResponse()
+        {
+            string indexName = "An_Index";
+
+            var elasticMap = new TestEntityMap();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var indexExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 404, false);
+            var indexCreatedMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexResponse() { Index = indexName, Acknowledged = false }, 400, false);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse).AndDoes(x =>
+            {
+                var indices = x.Arg<Indices>();
+                Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
+            });
+            esIndicesClient.Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            Assert.Throws<InvalidOperationException>(() => esWrapper.CreateIndex<TestEntity>(indexName));
+
+            esIndicesClient.Received(1).Exists(Arg.Any<Indices>());
+            esIndicesClient.Received(1).Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+        }
+
+        [Test]
+        public async Task Verify_CreateIndexAsync_WorksCorrectly()
+        {
+            string indexName = "An_Index";
+
+            var elasticMap = new TestThirdEntityMap();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1473,11 +1506,42 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
-            var result = await esWrapper.CreateIndexAsync<TestEntity>(indexName);
+            var result = await esWrapper.CreateIndexAsync<TestThirdEntity>(indexName);
             Assert.That(result, Is.EqualTo(true));
 
             await esIndicesClient.Received(1).ExistsAsync(Arg.Any<Indices>());
             await esIndicesClient.Received(1).CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+        }
+
+        [Test]
+        public async Task Verify_CreateIndexAsync_ReturnsFalseWhenAlreadyExist()
+        {
+            string indexName = "An_Index";
+
+            var elasticMap = new TestEntityMap();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var indexExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsAsync(Arg.Any<Indices>()).Returns(indexExistMockedResponse).AndDoes(x =>
+            {
+                var indices = x.Arg<Indices>();
+                Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
+            });
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var result = await esWrapper.CreateIndexAsync<TestEntity>(indexName);
+            Assert.That(result, Is.EqualTo(false));
+
+            await esIndicesClient.Received(1).ExistsAsync(Arg.Any<Indices>());
+            await esIndicesClient.Received(0).CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
         }
 
         [Test]
@@ -1493,7 +1557,6 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1528,7 +1591,6 @@ namespace FluentHelper.ElasticSearch.Tests
         public void Verify_CreateIndexTemplate_WorksCorrectly()
         {
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1557,13 +1619,39 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
+        public void Verify_CreateIndexTemplate_ReturnFalseWhenTemplateAlreadyExists()
+        {
+            var elasticMap = new TestEntityMap();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsIndexTemplate(Arg.Any<Name>()).Returns(templateExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
+            });
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var result = esWrapper.CreateIndexTemplate<TestEntity>();
+            Assert.That(result, Is.EqualTo(false));
+
+            esIndicesClient.Received(1).ExistsIndexTemplate(Arg.Any<Name>());
+            esIndicesClient.Received(0).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
         public void Verify_CreateIndexTemplate_ThrowsWhenEntityTypeAndPassedMappingMismatch()
         {
             var testEntityMap = new TestEntityMap();
-            testEntityMap.Map();
-
             var secondEntityMap = new TestSecondEntityMap();
-            secondEntityMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1585,10 +1673,39 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
-        public async Task Verify_CreateIndexTemplateAsync_WorksCorrectly()
+        public void Verify_CreateIndexTemplate_ThrowsOnInvalidResponse()
         {
             var elasticMap = new TestEntityMap();
-            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 404, false);
+            var templateCreatedMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateResponse() { Acknowledged = false }, 400, false);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsIndexTemplate(Arg.Any<Name>()).Returns(templateExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
+            });
+            esIndicesClient.PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            Assert.Throws<InvalidOperationException>(() => esWrapper.CreateIndexTemplate<TestEntity>());
+
+            esIndicesClient.Received(1).ExistsIndexTemplate(Arg.Any<Name>());
+            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
+        public async Task Verify_CreateIndexTemplateAsync_WorksCorrectly()
+        {
+            var elasticMap = new TestSecondEntityMap();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1609,7 +1726,7 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
 
-            var result = await esWrapper.CreateIndexTemplateAsync<TestEntity>();
+            var result = await esWrapper.CreateIndexTemplateAsync<TestSecondEntity>();
             Assert.That(result, Is.EqualTo(true));
 
             await esIndicesClient.Received(1).ExistsIndexTemplateAsync(Arg.Any<Name>());
@@ -1617,13 +1734,39 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
+        public async Task Verify_CreateIndexTemplateAsync_ReturnFalseWhenTemplateAlreadyExists()
+        {
+            var elasticMap = new TestEntityMap();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 200);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsIndexTemplateAsync(Arg.Any<Name>()).Returns(templateExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
+            });
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var result = await esWrapper.CreateIndexTemplateAsync<TestEntity>();
+            Assert.That(result, Is.EqualTo(false));
+
+            await esIndicesClient.Received(1).ExistsIndexTemplateAsync(Arg.Any<Name>());
+            await esIndicesClient.Received(0).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
         public async Task Verify_CreateIndexTemplateAsync_ThrowsWhenEntityTypeAndPassedMappingMismatch()
         {
             var testEntityMap = new TestEntityMap();
-            testEntityMap.Map();
-
             var secondEntityMap = new TestSecondEntityMap();
-            secondEntityMap.Map();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1642,6 +1785,190 @@ namespace FluentHelper.ElasticSearch.Tests
 
             await esIndicesClient.Received(0).ExistsIndexTemplateAsync(Arg.Any<Name>());
             await esIndicesClient.Received(0).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
+        public void Verify_CreateAllMappedIndexTemplate_WorksCorrectly()
+        {
+            var elasticMap = new TestEntityMap();
+            var secondEntityMap = new TestSecondEntityMap();
+            var thirdEntityMap = new TestThirdEntityMap();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateOneExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 200);
+            var templateTwoExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 404, false);
+            var templateCreatedMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateResponse() { Acknowledged = true }, 201);
+
+            var templateOne = new Name("testentity_template");
+            var templateTwo = new Name("secondentity_template");
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsIndexTemplate(Arg.Is(templateOne)).Returns(templateOneExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
+            });
+            esIndicesClient.ExistsIndexTemplate(Arg.Is(templateTwo)).Returns(templateTwoExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(secondEntityMap.TemplateName));
+            });
+            esIndicesClient.PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
+
+            var result = esWrapper.CreateAllMappedIndexTemplate();
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.TotalDefinedTemplates, Is.EqualTo(2));
+            Assert.That(result.CreatedTemplates, Is.EqualTo(1));
+            Assert.That(result.AlreadyExistingTemplates, Is.EqualTo(1));
+            Assert.That(result.FailedTemplates, Is.EqualTo(0));
+
+            esIndicesClient.Received(2).ExistsIndexTemplate(Arg.Any<Name>());
+            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
+        public void Verify_CreateAllMappedIndexTemplate_WorksCorrectlyWithFailedTemplate()
+        {
+            var elasticMap = new TestEntityMap();
+            var secondEntityMap = new TestSecondEntityMap();
+            var thirdEntityMap = new TestThirdEntityMap();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateOneExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 200);
+            var templateTwoExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 404, false);
+            var templateFailedMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateResponse() { Acknowledged = false }, 400, false);
+
+            var templateOne = new Name("testentity_template");
+            var templateTwo = new Name("secondentity_template");
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsIndexTemplate(Arg.Is(templateOne)).Returns(templateOneExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
+            });
+            esIndicesClient.ExistsIndexTemplate(Arg.Is(templateTwo)).Returns(templateTwoExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(secondEntityMap.TemplateName));
+            });
+            esIndicesClient.PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateFailedMockedResponse);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
+
+            var result = esWrapper.CreateAllMappedIndexTemplate();
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.TotalDefinedTemplates, Is.EqualTo(2));
+            Assert.That(result.CreatedTemplates, Is.EqualTo(0));
+            Assert.That(result.AlreadyExistingTemplates, Is.EqualTo(1));
+            Assert.That(result.FailedTemplates, Is.EqualTo(1));
+
+            esIndicesClient.Received(2).ExistsIndexTemplate(Arg.Any<Name>());
+            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
+        public async Task Verify_CreateAllMappedIndexTemplateAsync_WorksCorrectly()
+        {
+            var elasticMap = new TestEntityMap();
+            var secondEntityMap = new TestSecondEntityMap();
+            var thirdEntityMap = new TestThirdEntityMap();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateOneExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 200);
+            var templateTwoExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 404, false);
+            var templateCreatedMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateResponse() { Acknowledged = true }, 201);
+
+            var templateOne = new Name("testentity_template");
+            var templateTwo = new Name("secondentity_template");
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsIndexTemplateAsync(Arg.Is(templateOne)).Returns(templateOneExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
+            });
+            esIndicesClient.ExistsIndexTemplateAsync(Arg.Is(templateTwo)).Returns(templateTwoExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(secondEntityMap.TemplateName));
+            });
+            esIndicesClient.PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
+
+            var result = await esWrapper.CreateAllMappedIndexTemplateAsync();
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.TotalDefinedTemplates, Is.EqualTo(2));
+            Assert.That(result.CreatedTemplates, Is.EqualTo(1));
+            Assert.That(result.AlreadyExistingTemplates, Is.EqualTo(1));
+            Assert.That(result.FailedTemplates, Is.EqualTo(0));
+
+            await esIndicesClient.Received(2).ExistsIndexTemplateAsync(Arg.Any<Name>());
+            await esIndicesClient.Received(1).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
+        public async Task Verify_CreateAllMappedIndexTemplateAsync_WorksCorrectlyWithFailedTemplate()
+        {
+            var elasticMap = new TestEntityMap();
+            var secondEntityMap = new TestSecondEntityMap();
+            var thirdEntityMap = new TestThirdEntityMap();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateOneExistMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 200);
+            var templateTwoExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 404, false);
+            var templateFailedMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateResponse() { Acknowledged = false }, 400, false);
+
+            var templateOne = new Name("testentity_template");
+            var templateTwo = new Name("secondentity_template");
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsIndexTemplateAsync(Arg.Is(templateOne)).Returns(templateOneExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
+            });
+            esIndicesClient.ExistsIndexTemplateAsync(Arg.Is(templateTwo)).Returns(templateTwoExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(secondEntityMap.TemplateName));
+            });
+            esIndicesClient.PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateFailedMockedResponse);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
+
+            var result = await esWrapper.CreateAllMappedIndexTemplateAsync();
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.TotalDefinedTemplates, Is.EqualTo(2));
+            Assert.That(result.CreatedTemplates, Is.EqualTo(0));
+            Assert.That(result.AlreadyExistingTemplates, Is.EqualTo(1));
+            Assert.That(result.FailedTemplates, Is.EqualTo(1));
+
+            await esIndicesClient.Received(2).ExistsIndexTemplateAsync(Arg.Any<Name>());
+            await esIndicesClient.Received(1).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
         }
 
         [Test]

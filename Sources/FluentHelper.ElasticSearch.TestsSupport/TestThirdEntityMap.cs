@@ -3,22 +3,21 @@ using FluentHelper.ElasticSearch.Common;
 
 namespace FluentHelper.ElasticSearch.TestsSupport
 {
-    public class TestSecondEntityMap : ElasticMap<TestSecondEntity>
+    public class TestThirdEntityMap : ElasticMap<TestThirdEntity>
     {
         public override void Map()
         {
-            SetBaseIndexName("secondentity");
+            SetBaseIndexName("thirdentity");
 
             SetBasicIndexCalculator();
 
             Id(e => e.Id);
 
-            EnableTemplateCreation("secondentity_template");
-
             Settings(x => x.NumberOfShards(1));
 
             Prop<KeywordProperty>(e => e.Id);
-            Prop<TextProperty>(e => e.Name);
+            Prop<DateProperty>(e => e.Timestamp);
+            Prop<DoubleNumberProperty>(e => e.Value);
         }
     }
 }

@@ -504,21 +504,18 @@ namespace FluentHelper.ElasticSearch.Common
         {
             (int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates) result = new();
 
-            foreach (var (_, mapInstance) in _entityMappingList)
+            foreach (var (_, mapInstance) in _entityMappingList.Where(x => x.Value.CreateTemplate))
             {
                 try
                 {
-                    if (mapInstance.CreateTemplate)
-                    {
-                        result.TotalDefinedTemplates++;
+                    result.TotalDefinedTemplates++;
 
-                        bool templateCreated = CreateIndexTemplate(mapInstance);
+                    bool templateCreated = CreateIndexTemplate(mapInstance);
 
-                        if (templateCreated)
-                            result.CreatedTemplates++;
-                        else
-                            result.AlreadyExistingTemplates++;
-                    }
+                    if (templateCreated)
+                        result.CreatedTemplates++;
+                    else
+                        result.AlreadyExistingTemplates++;
                 }
                 catch
                 {

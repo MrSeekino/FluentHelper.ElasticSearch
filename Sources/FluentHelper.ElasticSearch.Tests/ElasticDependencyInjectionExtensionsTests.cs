@@ -43,9 +43,10 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMaps = serviceProvider.GetServices<IElasticMap>();
             Assert.That(elasticMaps, Is.Not.Null);
-            Assert.That(elasticMaps.Count(), Is.EqualTo(2));
+            Assert.That(elasticMaps.Count(), Is.EqualTo(3));
             Assert.That(elasticMaps.Any(x => x.GetType() == typeof(TestEntityMap)), Is.EqualTo(true));
             Assert.That(elasticMaps.Any(x => x.GetType() == typeof(TestSecondEntityMap)), Is.EqualTo(true));
+            Assert.That(elasticMaps.Any(x => x.GetType() == typeof(TestThirdEntityMap)), Is.EqualTo(true));
 
             var elasticWrapper = serviceProvider.GetRequiredService<IElasticWrapper>();
             Assert.That(elasticWrapper, Is.Not.Null);
