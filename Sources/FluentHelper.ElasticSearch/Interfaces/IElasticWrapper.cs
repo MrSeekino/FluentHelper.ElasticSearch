@@ -180,37 +180,41 @@ namespace FluentHelper.ElasticSearch.Interfaces
         /// </summary>
         /// <typeparam name="TEntity">the type of data</typeparam>
         /// <param name="inputData">the input data used to calculate index parameters</param>
-        void CreateIndexFromData<TEntity>(TEntity inputData) where TEntity : class;
+        /// <returns>true if the index is created, false if already exists, throws if fails</returns>
+        bool CreateIndexFromData<TEntity>(TEntity inputData) where TEntity : class;
         /// <summary>
         /// Create an index with the provided name and configured mapping
         /// </summary>
         /// <typeparam name="TEntity">the type of data</typeparam>
         /// <param name="indexName">the name of the index</param>
-        void CreateIndex<TEntity>(string indexName) where TEntity : class;
+        /// <returns>true if the index is created, false if already exists, throws if fails</returns>
+        bool CreateIndex<TEntity>(string indexName) where TEntity : class;
         /// <summary>
         /// Create an index based in the input data and configured mapping
         /// </summary>
         /// <typeparam name="TEntity">the type of data</typeparam>
         /// <param name="inputData">the input data used to calculate index parameters</param>
         /// <param name="cancellationToken">the token to cancel the operation</param>
-        Task CreateIndexFromDataAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class;
+        /// <returns>true if the index is created, false if already exists, throws if fails</returns>
+        Task<bool> CreateIndexFromDataAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class;
         /// <summary>
         /// Create an index with the provided name and configured mapping
         /// </summary>
         /// <typeparam name="TEntity">the type of data</typeparam>
         /// <param name="indexName">the name of the index</param>
         /// <param name="cancellationToken">the token to cancel the operation</param>
-        Task CreateIndexAsync<TEntity>(string indexName, CancellationToken cancellationToken = default) where TEntity : class;
+        /// <returns>true if the index is created, false if already exists, throws if fails</returns>
+        Task<bool> CreateIndexAsync<TEntity>(string indexName, CancellationToken cancellationToken = default) where TEntity : class;
 
         /// <summary>
         /// Create templates for all the defined mappings
         /// </summary>
-        /// <returns>the nuber of templates created and the number of total templates defined</returns>
+        /// <returns>the number of templates created, alreadyexisting, failed and the number of total templates defined</returns>
         (int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates) CreateAllMappedIndexTemplate();
         /// <summary>
         /// Create templates for all the defined mappings
         /// </summary>
-        /// <returns>the nuber of templates created and the number of total templates defined</returns>
+        /// <returns>the number of templates created, alreadyexisting, failed and the number of total templates defined</returns>
         Task<(int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates)> CreateAllMappedIndexTemplateAsync();
 
         /// <summary>

@@ -33,6 +33,8 @@ namespace FluentHelper.ElasticSearch.TestsSupport
             });
 
             Id(e => e.Id);
+
+            EnableTemplateCreation("testentity_template");
         }
     }
 }

@@ -1369,6 +1369,282 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
+        public void Verify_CreateIndex_WorksCorrectly()
+        {
+            string indexName = "An_Index";
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var indexExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 404, false);
+            var indexCreatedMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexResponse() { Index = indexName, Acknowledged = true }, 201);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse).AndDoes(x =>
+            {
+                var indices = x.Arg<Indices>();
+                Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
+            });
+            esIndicesClient.Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var result = esWrapper.CreateIndex<TestEntity>(indexName);
+            Assert.That(result, Is.EqualTo(true));
+
+            esIndicesClient.Received(1).Exists(Arg.Any<Indices>());
+            esIndicesClient.Received(1).Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+        }
+
+        [Test]
+        public void Verify_CreateIndexFromData_WorksCorrectly()
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            string indexName = esWrapper.GetIndexName(testData);
+
+            var indexExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 404, false);
+            var indexCreatedMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexResponse() { Index = indexName, Acknowledged = true }, 201);
+
+            esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse).AndDoes(x =>
+            {
+                var indices = x.Arg<Indices>();
+                Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
+            });
+            esIndicesClient.Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
+
+            var result = esWrapper.CreateIndexFromData(testData);
+            Assert.That(result, Is.EqualTo(true));
+
+            esIndicesClient.Received(1).Exists(Arg.Any<Indices>());
+            esIndicesClient.Received(1).Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+        }
+
+        [Test]
+        public async Task Verify_CreateIndexAsync_WorksCorrectly()
+        {
+            string indexName = "An_Index";
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var indexExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 404, false);
+            var indexCreatedMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexResponse() { Index = indexName, Acknowledged = true }, 201);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsAsync(Arg.Any<Indices>()).Returns(indexExistMockedResponse).AndDoes(x =>
+            {
+                var indices = x.Arg<Indices>();
+                Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
+            });
+            esIndicesClient.CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var result = await esWrapper.CreateIndexAsync<TestEntity>(indexName);
+            Assert.That(result, Is.EqualTo(true));
+
+            await esIndicesClient.Received(1).ExistsAsync(Arg.Any<Indices>());
+            await esIndicesClient.Received(1).CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+        }
+
+        [Test]
+        public async Task Verify_CreateIndexFromDataAsync_WorksCorrectly()
+        {
+            var testData = new TestEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test",
+                GroupName = "Group",
+                CreationTime = DateTime.UtcNow,
+                Active = true
+            };
+
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            string indexName = esWrapper.GetIndexName(testData);
+
+            var indexExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse(), 404, false);
+            var indexCreatedMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexResponse() { Index = indexName, Acknowledged = true }, 201);
+
+            esIndicesClient.ExistsAsync(Arg.Any<Indices>()).Returns(indexExistMockedResponse).AndDoes(x =>
+            {
+                var indices = x.Arg<Indices>();
+                Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
+            });
+            esIndicesClient.CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
+
+            var result = await esWrapper.CreateIndexFromDataAsync(testData);
+            Assert.That(result, Is.EqualTo(true));
+
+            await esIndicesClient.Received(1).ExistsAsync(Arg.Any<Indices>());
+            await esIndicesClient.Received(1).CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+        }
+
+        [Test]
+        public void Verify_CreateIndexTemplate_WorksCorrectly()
+        {
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 404, false);
+            var templateCreatedMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateResponse() { Acknowledged = true }, 201);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsIndexTemplate(Arg.Any<Name>()).Returns(templateExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
+            });
+            esIndicesClient.PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var result = esWrapper.CreateIndexTemplate<TestEntity>();
+            Assert.That(result, Is.EqualTo(true));
+
+            esIndicesClient.Received(1).ExistsIndexTemplate(Arg.Any<Name>());
+            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
+        public void Verify_CreateIndexTemplate_ThrowsWhenEntityTypeAndPassedMappingMismatch()
+        {
+            var testEntityMap = new TestEntityMap();
+            testEntityMap.Map();
+
+            var secondEntityMap = new TestSecondEntityMap();
+            secondEntityMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 404, false);
+            var templateCreatedMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateResponse() { Acknowledged = true }, 201);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [testEntityMap, secondEntityMap]);
+
+            Assert.Throws<InvalidOperationException>(() => esWrapper.CreateIndexTemplate<TestEntity>(secondEntityMap));
+
+            esIndicesClient.Received(0).ExistsIndexTemplate(Arg.Any<Name>());
+            esIndicesClient.Received(0).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
+        public async Task Verify_CreateIndexTemplateAsync_WorksCorrectly()
+        {
+            var elasticMap = new TestEntityMap();
+            elasticMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 404, false);
+            var templateCreatedMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateResponse() { Acknowledged = true }, 201);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+            esIndicesClient.ExistsIndexTemplateAsync(Arg.Any<Name>()).Returns(templateExistMockedResponse).AndDoes(x =>
+            {
+                var name = x.Arg<Name>();
+                Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
+            });
+            esIndicesClient.PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+
+            var result = await esWrapper.CreateIndexTemplateAsync<TestEntity>();
+            Assert.That(result, Is.EqualTo(true));
+
+            await esIndicesClient.Received(1).ExistsIndexTemplateAsync(Arg.Any<Name>());
+            await esIndicesClient.Received(1).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
+        public async Task Verify_CreateIndexTemplateAsync_ThrowsWhenEntityTypeAndPassedMappingMismatch()
+        {
+            var testEntityMap = new TestEntityMap();
+            testEntityMap.Map();
+
+            var secondEntityMap = new TestSecondEntityMap();
+            secondEntityMap.Map();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var templateExistMockedResponse = TestableResponseFactory.CreateResponse(new Elastic.Clients.Elasticsearch.IndexManagement.ExistsIndexTemplateResponse(), 404, false);
+            var templateCreatedMockedResponse = TestableResponseFactory.CreateSuccessfulResponse(new Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateResponse() { Acknowledged = true }, 201);
+
+            var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Indices.Returns(esIndicesClient);
+
+            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [testEntityMap, secondEntityMap]);
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await esWrapper.CreateIndexTemplateAsync<TestEntity>(secondEntityMap));
+
+            await esIndicesClient.Received(0).ExistsIndexTemplateAsync(Arg.Any<Name>());
+            await esIndicesClient.Received(0).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+        }
+
+        [Test]
         public void Verify_Dispose_ForceClientRecreation()
         {
             int logActionCalls = 0;

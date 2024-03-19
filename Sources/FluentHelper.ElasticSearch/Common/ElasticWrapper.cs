@@ -423,13 +423,13 @@ namespace FluentHelper.ElasticSearch.Common
             return indexNames;
         }
 
-        public void CreateIndexFromData<TEntity>(TEntity inputData) where TEntity : class
+        public bool CreateIndexFromData<TEntity>(TEntity inputData) where TEntity : class
         {
             string indexName = GetIndexName(inputData);
-            CreateIndex<TEntity>(indexName);
+            return CreateIndex<TEntity>(indexName);
         }
 
-        public void CreateIndex<TEntity>(string indexName) where TEntity : class
+        public bool CreateIndex<TEntity>(string indexName) where TEntity : class
         {
             var existResponse = GetOrCreateClient().Indices.Exists(indexName);
             if (!CheckIndexExistsResponse(existResponse))
@@ -437,16 +437,21 @@ namespace FluentHelper.ElasticSearch.Common
                 var requestDescriptor = GetCreateIndexRequestParameters<TEntity>(indexName);
                 var createIndexReponse = GetOrCreateClient().Indices.Create(requestDescriptor);
                 CheckCreateIndexResponse<TEntity>(createIndexReponse);
+
+                return true;
             }
+
+            return false;
         }
 
-        public async Task CreateIndexFromDataAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class
+        public async Task<bool> CreateIndexFromDataAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class
         {
             string indexName = GetIndexName(inputData);
-            await CreateIndexAsync<TEntity>(indexName, cancellationToken);
+            var result = await CreateIndexAsync<TEntity>(indexName, cancellationToken);
+            return result;
         }
 
-        public async Task CreateIndexAsync<TEntity>(string indexName, CancellationToken cancellationToken = default) where TEntity : class
+        public async Task<bool> CreateIndexAsync<TEntity>(string indexName, CancellationToken cancellationToken = default) where TEntity : class
         {
             var existResponse = await GetOrCreateClient().Indices.ExistsAsync(indexName, cancellationToken);
             if (!CheckIndexExistsResponse(existResponse))
@@ -454,7 +459,11 @@ namespace FluentHelper.ElasticSearch.Common
                 var requestDescriptor = GetCreateIndexRequestParameters<TEntity>(indexName);
                 var createIndexReponse = await GetOrCreateClient().Indices.CreateAsync(requestDescriptor, cancellationToken);
                 CheckCreateIndexResponse<TEntity>(createIndexReponse);
+
+                return true;
             }
+
+            return false;
         }
 
         private CreateIndexRequestDescriptor GetCreateIndexRequestParameters<TEntity>(string indexName) where TEntity : class
@@ -566,6 +575,8 @@ namespace FluentHelper.ElasticSearch.Common
                 var requestDescriptor = GetIndexTemplateRequest(templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
                 var putTemplateResponse = GetOrCreateClient().Indices.PutIndexTemplate(requestDescriptor);
                 CheckPutIndexTemplateResponse(putTemplateResponse, templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
+
+                return true;
             }
 
             return false;
@@ -595,6 +606,7 @@ namespace FluentHelper.ElasticSearch.Common
                 var requestDescriptor = GetIndexTemplateRequest(templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
                 var putTemplateResponse = await GetOrCreateClient().Indices.PutIndexTemplateAsync(requestDescriptor, cancellationToken);
                 CheckPutIndexTemplateResponse(putTemplateResponse, templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
+
                 return true;
             }
 
