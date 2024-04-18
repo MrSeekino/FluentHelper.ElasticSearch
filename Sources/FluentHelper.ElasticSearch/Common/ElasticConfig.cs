@@ -12,6 +12,8 @@ namespace FluentHelper.ElasticSearch.Common
         public string? CertificateFingerprint { get; set; }
         public (string Username, string Password)? BasicAuthentication { get; set; }
 
+        public bool DisablePing { get; set; }
+
         public bool EnableDebug { get; set; }
         public Action<ApiCallDetails>? RequestCompleted { get; set; }
 

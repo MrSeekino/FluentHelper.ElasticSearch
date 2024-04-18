@@ -157,6 +157,7 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+            elasticConfig.DisablePing.Returns(true);
             elasticConfig.EnableDebug.Returns(true);
             elasticConfig.CertificateFingerprint.Returns("ABCDE");
             elasticConfig.BasicAuthentication.Returns(basicAuth);

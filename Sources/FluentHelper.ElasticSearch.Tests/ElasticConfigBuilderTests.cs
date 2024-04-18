@@ -225,5 +225,16 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(elasticConfig, Is.Not.Null);
             Assert.That(elasticConfig.MappingAssemblies.Count, Is.EqualTo(1));
         }
+
+        [Test]
+        public void Verify_WithDisablePing_WorksCorrectly()
+        {
+            var elasticConfigBuilder = ElasticConfigBuilder.Create()
+                                            .WithDisablePing();
+
+            var elasticConfig = elasticConfigBuilder.Build();
+            Assert.That(elasticConfig, Is.Not.Null);
+            Assert.That(elasticConfig.DisablePing, Is.True);
+        }
     }
 }

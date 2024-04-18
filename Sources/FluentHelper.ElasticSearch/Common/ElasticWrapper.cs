@@ -62,6 +62,9 @@ namespace FluentHelper.ElasticSearch.Common
             if (_elasticConfig.RequestTimeout.HasValue)
                 esSettings.RequestTimeout(_elasticConfig.RequestTimeout.Value);
 
+            if (_elasticConfig.DisablePing)
+                esSettings.DisablePing();
+
             foreach (var m in _entityMappingList)
                 m.Value.ApplyMapping(esSettings);
 

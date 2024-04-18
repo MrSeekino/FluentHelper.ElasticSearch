@@ -13,6 +13,8 @@ namespace FluentHelper.ElasticSearch.Common
         private string _certificateFingerprint;
         private (string Username, string Password)? _basicAuthentication;
 
+        private bool _disablePing;
+
         private bool _enableDebug;
         private Action<ApiCallDetails>? _requestCompleted;
 
@@ -31,6 +33,7 @@ namespace FluentHelper.ElasticSearch.Common
             _connectionPool = [];
             _certificateFingerprint = string.Empty;
             _basicAuthentication = null;
+            _disablePing = false;
             _enableDebug = false;
             _requestCompleted = null;
             _requestTimeout = null;
@@ -112,6 +115,16 @@ namespace FluentHelper.ElasticSearch.Common
             if (basicAuthentication != null)
                 _basicAuthentication = basicAuthentication;
 
+            return this;
+        }
+
+        /// <summary>
+        /// Disable Ping to Elasticsearch
+        /// </summary>
+        /// <returns></returns>
+        public ElasticConfigBuilder WithDisablePing()
+        {
+            _disablePing = true;
             return this;
         }
 
@@ -221,6 +234,7 @@ namespace FluentHelper.ElasticSearch.Common
                 ConnectionsPool = _connectionPool.ToArray(),
                 CertificateFingerprint = _certificateFingerprint,
                 BasicAuthentication = _basicAuthentication,
+                DisablePing = _disablePing,
                 EnableDebug = _enableDebug,
                 RequestCompleted = _requestCompleted,
                 RequestTimeout = _requestTimeout,
