@@ -7,12 +7,13 @@
 		<PackageId>FluentHelper.ElasticSearch</PackageId>
 		<Title>FluentHelper.ElasticSearch</Title>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<Version>8.1.0</Version>
+		<Version>8.2.0</Version>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<Product>FluentHelper.ElasticSearch</Product>
 		<PackageProjectUrl>https://github.com/MrSeekino/FluentHelper.ElasticSearch</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/MrSeekino/FluentHelper.ElasticSearch</RepositoryUrl>
 		<PackageTags>FluentHelper;ElasticSearch</PackageTags>
+		<Copyright>Copyright © 2024 Andrea Pittaluga</Copyright>
 	</PropertyGroup>
 
 	<ItemGroup>
