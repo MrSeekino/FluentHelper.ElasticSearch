@@ -22,5 +22,7 @@ namespace FluentHelper.ElasticSearch.Examples.Repositories
         Task<TestData?> GetByIdWithoutCreationTimeAndActive(Guid id);
 
         Task<IEnumerable<TestData>> GetAllSortedByCreationDateDesc();
+
+        Task<IEnumerable<TestData>> GetAllActiveFromDate(DateTime minDate);
     }
 }

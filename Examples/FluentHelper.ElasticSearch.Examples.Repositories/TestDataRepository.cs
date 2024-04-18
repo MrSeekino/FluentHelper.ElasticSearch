@@ -43,6 +43,25 @@ namespace FluentHelper.ElasticSearch.Examples.Repositories
             return await _elasticWrapper.QueryAsync(null, qParams);
         }
 
+        public async Task<IEnumerable<TestData>> GetAllActiveFromDate(DateTime minDate)
+        {
+            var qBuilder = ElasticQueryParametersBuilder<TestData>.Create()
+                                .Query(q =>
+                                {
+                                    q.AddQuery(x => x.Term(m => m.Field(f => f.Active).Value(true)))
+                                        .AddQuery(x => x.Range(r => r.DateRange(x => x.Field(f => f.CreationDate).Gt(minDate))));
+                                })
+                                //.Query(q =>
+                                //{
+                                //    q.Term(m => m.Field(f => f.Active).Value(true));
+                                //    q.Range(r => r.DateRange(x => x.Field(f => f.CreationDate).Gt(minDate)));
+                                //})
+                                .Sort(x => x.CreationDate, SortOrder.Desc);
+
+            var qParams = qBuilder.Build();
+            return await _elasticWrapper.QueryAsync(null, qParams);
+        }
+
         public async Task<TestData?> GetById(Guid id)
         {
             var qBuilder = ElasticQueryParametersBuilder<TestData>.Create()

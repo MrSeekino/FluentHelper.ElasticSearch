@@ -53,6 +53,20 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
+        public void Verify_QueryDescriptor_IsCorrectlyApplied_WhenUsing_ElasticQueryActionBuilder()
+        {
+            var builder = ElasticQueryParametersBuilder<TestEntity>.Create()
+                            .Query(b =>
+                            {
+                                b.AddQuery(x => x.Match(m => m.Query("test")))
+                                    .AddQuery(x => x.Match(m => m.Query("afield")));
+                            });
+
+            var queryParameters = builder.Build();
+            Assert.That(queryParameters.QueryDescriptor, Is.Not.Null);
+        }
+
+        [Test]
         public void Verify_SortDescriptor_IsCorrectlyApplied()
         {
             var builder = ElasticQueryParametersBuilder<TestEntity>.Create()

@@ -2,12 +2,14 @@
 using Elastic.Clients.Elasticsearch.Core.Search;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace FluentHelper.ElasticSearch.QueryParameters
 {
     public sealed class ElasticQueryParametersBuilder<TEntity> where TEntity : class
     {
+        private List<Action<QueryDescriptor<TEntity>>> _queryActions = [];
         private QueryDescriptor<TEntity>? _queryDescriptor;
         private SourceFilter? _sourceFilter;
         private SortOptionsDescriptor<TEntity>? _sortOptionsDescriptor;
@@ -22,6 +24,7 @@ namespace FluentHelper.ElasticSearch.QueryParameters
         {
             return new ElasticQueryParametersBuilder<TEntity>()
             {
+                _queryActions = [],
                 _queryDescriptor = null,
                 _sourceFilter = null,
                 _sortOptionsDescriptor = null,
@@ -41,6 +44,20 @@ namespace FluentHelper.ElasticSearch.QueryParameters
             queryAction(queryDescriptor);
 
             _queryDescriptor = queryDescriptor;
+            return this;
+        }
+
+        /// <summary>
+        /// Add QueryDescriptor using builder allowing to add multiple descriptor as bool query
+        /// </summary>
+        /// <param name="queryAction">Configuration to apply to QueryActionBuilder</param>
+        /// <returns></returns>
+        public ElasticQueryParametersBuilder<TEntity> Query(Action<ElasticQueryActionBuilder<TEntity>> queryAction)
+        {
+            ElasticQueryActionBuilder<TEntity> actionBuilder = new();
+            queryAction(actionBuilder);
+
+            _queryDescriptor = actionBuilder.BuildQueryDescriptor();
             return this;
         }
 

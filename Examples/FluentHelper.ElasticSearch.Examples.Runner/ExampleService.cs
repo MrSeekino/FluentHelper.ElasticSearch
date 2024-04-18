@@ -87,6 +87,13 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
                     var totalDocs = await _testDataRepository.Count();
                     Console.WriteLine($"Index contains {totalDocs} documents");
 
+                    DateTime minDate = DateTime.UtcNow.AddMinutes(-20);
+                    Console.WriteLine($"Getting active document created in past 20minutes..");
+                    PressToContinue();
+
+                    var activeInPastTwentyMinutes = await _testDataRepository.GetAllActiveFromDate(minDate);
+                    Console.WriteLine($"Retrieved {activeInPastTwentyMinutes.Count()} documents");
+
                     Console.WriteLine($"Updating doc with id {_exampleData.Id}..");
                     PressToContinue();
 
