@@ -5,12 +5,13 @@ using Elastic.Transport.Products.Elasticsearch;
 using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Interfaces;
 using FluentHelper.ElasticSearch.QueryParameters;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,6 +20,8 @@ namespace FluentHelper.ElasticSearch.Common
 {
     internal sealed class ElasticWrapper : IElasticWrapper
     {
+        private readonly static JsonSerializerOptions _jsonSerializerOptions = new() { ReferenceHandler = ReferenceHandler.IgnoreCycles };
+
         private ElasticsearchClient? _client;
         private readonly IElasticConfig _elasticConfig;
         private readonly Dictionary<Type, IElasticMap> _entityMappingList;
@@ -100,7 +103,7 @@ namespace FluentHelper.ElasticSearch.Common
             AfterQueryResponse(addResponse);
 
             if (!addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
-                throw new InvalidOperationException("Could not add data", new Exception(JsonConvert.SerializeObject(addResponse)));
+                throw new InvalidOperationException("Could not add data", new Exception(SerializeResponse(addResponse)));
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), addResponse.Index]);
         }
@@ -222,7 +225,7 @@ namespace FluentHelper.ElasticSearch.Common
             AfterQueryResponse(updateResponse);
 
             if (!updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
-                throw new InvalidOperationException("Could not update data", new Exception(JsonConvert.SerializeObject(updateResponse)));
+                throw new InvalidOperationException("Could not update data", new Exception(SerializeResponse(updateResponse)));
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), updateResponse.Index]);
         }
@@ -271,7 +274,7 @@ namespace FluentHelper.ElasticSearch.Common
             AfterQueryResponse(queryResponse);
 
             if (queryResponse == null || !queryResponse.IsValidResponse)
-                throw new InvalidOperationException("Could not get data", new Exception(JsonConvert.SerializeObject(queryResponse)));
+                throw new InvalidOperationException("Could not get data", new Exception(SerializeResponse(queryResponse)));
 
             return queryResponse.Documents;
         }
@@ -309,7 +312,7 @@ namespace FluentHelper.ElasticSearch.Common
             AfterQueryResponse(countResponse);
 
             if (!countResponse.IsValidResponse)
-                throw new InvalidOperationException("Could not count data", new Exception(JsonConvert.SerializeObject(countResponse)));
+                throw new InvalidOperationException("Could not count data", new Exception(SerializeResponse(countResponse)));
 
             return countResponse.Count;
         }
@@ -333,7 +336,7 @@ namespace FluentHelper.ElasticSearch.Common
             AfterQueryResponse(deleteResponse);
 
             if (!deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
-                throw new InvalidOperationException("Could not delete data", new Exception(JsonConvert.SerializeObject(deleteResponse)));
+                throw new InvalidOperationException("Could not delete data", new Exception(SerializeResponse(deleteResponse)));
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), deleteResponse.Index]);
         }
@@ -498,7 +501,7 @@ namespace FluentHelper.ElasticSearch.Common
             AfterQueryResponse(createIndexReponse);
 
             if (!createIndexReponse.IsValidResponse)
-                throw new InvalidOperationException($"Could not create index {createIndexReponse.Index} for {typeof(TEntity).Name}", new Exception(JsonConvert.SerializeObject(createIndexReponse)));
+                throw new InvalidOperationException($"Could not create index {createIndexReponse.Index} for {typeof(TEntity).Name}", new Exception(SerializeResponse(createIndexReponse)));
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Index {indexName} created", [createIndexReponse.Index]);
         }
@@ -652,7 +655,7 @@ namespace FluentHelper.ElasticSearch.Common
             AfterQueryResponse(putTemplateResponse);
 
             if (!putTemplateResponse.IsValidResponse)
-                throw new InvalidOperationException($"Could not create template {templateName} for {mapInstance.GetMappingType().Name} with patterns {indexPatterns}", new Exception(JsonConvert.SerializeObject(putTemplateResponse)));
+                throw new InvalidOperationException($"Could not create template {templateName} for {mapInstance.GetMappingType().Name} with patterns {indexPatterns}", new Exception(SerializeResponse(putTemplateResponse)));
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Template {templateName} created", [templateName]);
         }
@@ -669,6 +672,11 @@ namespace FluentHelper.ElasticSearch.Common
             }
 
             _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, queryResponse!.DebugInformation, []);
+        }
+
+        private string SerializeResponse<T>(T response)
+        {
+            return System.Text.Json.JsonSerializer.Serialize(response, _jsonSerializerOptions);
         }
 
         public void Dispose()
