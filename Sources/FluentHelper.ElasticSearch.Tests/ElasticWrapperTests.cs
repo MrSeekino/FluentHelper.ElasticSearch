@@ -6,6 +6,7 @@ using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Interfaces;
 using FluentHelper.ElasticSearch.QueryParameters;
 using FluentHelper.ElasticSearch.TestsSupport;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
 using System.Dynamic;
@@ -21,13 +22,15 @@ namespace FluentHelper.ElasticSearch.Tests
         [TestCase("", "")]
         public void Verify_IndexNameForEntity_IsCalculated_Correctly(string prefix, string suffix)
         {
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.IndexPrefix.Returns(prefix);
             elasticConfig.IndexSuffix.Returns(suffix);
 
             var testEntityMap = new TestEntityMap();
 
-            ElasticWrapper elasticWrapper = new(elasticConfig, [testEntityMap]);
+            ElasticWrapper elasticWrapper = new(loggerFactory, elasticConfig, [testEntityMap]);
 
             var testEntityInstance = new TestEntity
             {
@@ -78,13 +81,15 @@ namespace FluentHelper.ElasticSearch.Tests
         [TestCase("", "", "", "")]
         public void Verify_IndexNamesForQueries_AreCalculated_Correctly(string prefix, string suffix, string startTime, string endTime)
         {
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.IndexPrefix.Returns(prefix);
             elasticConfig.IndexSuffix.Returns(suffix);
 
             var testEntityMap = new TestEntityMap();
 
-            ElasticWrapper elasticWrapper = new(elasticConfig, [testEntityMap]);
+            ElasticWrapper elasticWrapper = new(loggerFactory, elasticConfig, [testEntityMap]);
 
             var testFilter = new TestFilter
             {
@@ -116,10 +121,11 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void Verify_ElasticWrapper_IsCreatedCorrectly()
         {
+            var loggerFactory = Substitute.For<ILoggerFactory>();
             var elasticConfig = Substitute.For<IElasticConfig>();
             var elasticMap = new TestEntityMap();
 
-            var esWrapper = new ElasticWrapper(elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(loggerFactory, elasticConfig, [elasticMap]);
 
             Assert.That(esWrapper.MappingLength, Is.EqualTo(1));
         }
@@ -128,6 +134,8 @@ namespace FluentHelper.ElasticSearch.Tests
         public void Verify_GetOrCreateClient_WorksProperly()
         {
             bool applySpecialMapCalled = false;
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -140,7 +148,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 applySpecialMapCalled = true;
             });
 
-            var esWrapper = new ElasticWrapper(elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(loggerFactory, elasticConfig, [elasticMap]);
             var elasticClient = esWrapper.GetOrCreateClient();
 
             Assert.That(elasticClient, Is.Not.Null);
@@ -154,6 +162,8 @@ namespace FluentHelper.ElasticSearch.Tests
             bool applySpecialMapCalled = false;
             bool logActionCalled = false;
             (string username, string password) basicAuth = new("username", "password");
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -172,7 +182,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 applySpecialMapCalled = true;
             });
 
-            var esWrapper = new ElasticWrapper(elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(loggerFactory, elasticConfig, [elasticMap]);
             var elasticClient = esWrapper.GetOrCreateClient();
 
             Assert.That(elasticClient, Is.Not.Null);
@@ -195,6 +205,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -209,7 +221,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
             IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.Index(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse).AndDoes(x =>
@@ -238,6 +250,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -252,7 +266,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
             IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.IndexAsync(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse).AndDoes(x =>
@@ -281,6 +295,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -296,7 +312,7 @@ namespace FluentHelper.ElasticSearch.Tests
             esClient.Indices.Returns(esIndicesClient);
             esClient.Index(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             Assert.Throws<InvalidOperationException>(() => esWrapper.Add(testData));
         }
@@ -334,6 +350,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
             elasticConfig.BulkInsertChunkSize.Returns(2);
@@ -350,7 +368,7 @@ namespace FluentHelper.ElasticSearch.Tests
             esClient.Indices.Returns(esIndicesClient);
             esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             int totalAddedElements = esWrapper.BulkAdd(dataList);
             esClient.Received(2).Bulk(Arg.Any<Action<BulkRequestDescriptor>>());
@@ -390,6 +408,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
             elasticConfig.BulkInsertChunkSize.Returns(2);
@@ -406,7 +426,7 @@ namespace FluentHelper.ElasticSearch.Tests
             esClient.Indices.Returns(esIndicesClient);
             esClient.BulkAsync(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             int totalAddedElements = await esWrapper.BulkAddAsync(dataList);
             await esClient.Received(2).BulkAsync(Arg.Any<Action<BulkRequestDescriptor>>());
@@ -418,6 +438,8 @@ namespace FluentHelper.ElasticSearch.Tests
         {
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
             elasticConfig.LogAction.Returns((logLevel, ex, message, args) => { });
@@ -428,7 +450,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             int totalAddedElements = esWrapper.BulkAdd<TestEntity>([]);
             esClient.DidNotReceive().Bulk(Arg.Any<Action<BulkRequestDescriptor>>());
@@ -468,6 +490,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
             elasticConfig.BulkInsertChunkSize.Returns(10);
@@ -484,7 +508,7 @@ namespace FluentHelper.ElasticSearch.Tests
             esClient.Indices.Returns(esIndicesClient);
             esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             int totalAddedElements = esWrapper.BulkAdd(dataList);
             esClient.Received(1).Bulk(Arg.Any<Action<BulkRequestDescriptor>>());
@@ -543,11 +567,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
             esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
             esClient.Bulk(Arg.Any<Action<BulkRequestDescriptor>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             int totalAddedElements = esWrapper.BulkAdd(dataList);
             esClient.Received(2).Bulk(Arg.Any<Action<BulkRequestDescriptor>>());
@@ -569,6 +595,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -577,7 +605,7 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var esClient = Substitute.For<ElasticsearchClient>();
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
             IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.Delete(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<DeleteRequestDescriptor<TestEntity>>>()).Returns(mockedResponse).AndDoes(x =>
@@ -606,6 +634,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -614,7 +644,7 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var esClient = Substitute.For<ElasticsearchClient>();
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
             IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.DeleteAsync(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<DeleteRequestDescriptor<TestEntity>>>()).Returns(mockedResponse).AndDoes(x =>
@@ -643,6 +673,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -651,7 +683,7 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var esClient = Substitute.For<ElasticsearchClient>();
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
             IndexName indexName = esWrapper.GetIndexName(testData);
 
             esClient.Delete(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<DeleteRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
@@ -673,6 +705,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -687,7 +721,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             IndexName indexName = esWrapper.GetIndexName(testData);
 
@@ -717,6 +751,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -731,7 +767,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             IndexName indexName = esWrapper.GetIndexName(testData);
 
@@ -772,10 +808,12 @@ namespace FluentHelper.ElasticSearch.Tests
             var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
             esIndicesClient.ExistsAsync(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             IndexName indexName = esWrapper.GetIndexName(testData);
 
@@ -816,10 +854,12 @@ namespace FluentHelper.ElasticSearch.Tests
             var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
             esIndicesClient.Exists(Arg.Any<Indices>()).Returns(indexExistMockedResponse);
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             IndexName indexName = esWrapper.GetIndexName(testData);
 
@@ -868,6 +908,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -888,7 +930,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Search(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>
             {
@@ -934,6 +976,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -954,7 +998,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Search(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>
             {
@@ -1003,6 +1047,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1023,7 +1069,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.SearchAsync(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>
             {
@@ -1069,6 +1115,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1085,7 +1133,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Search(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>
             {
@@ -1101,6 +1149,8 @@ namespace FluentHelper.ElasticSearch.Tests
         {
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1110,7 +1160,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Count(Arg.Any<CountRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>();
             var totalItems = esWrapper.Count(null, esQueryParameters);
@@ -1130,10 +1180,12 @@ namespace FluentHelper.ElasticSearch.Tests
             var response = new CountResponse { Count = 3 };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Count(Arg.Any<CountRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>()
             {
@@ -1150,6 +1202,8 @@ namespace FluentHelper.ElasticSearch.Tests
         {
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1159,7 +1213,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.CountAsync(Arg.Any<CountRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>();
             var totalItems = await esWrapper.CountAsync(null, esQueryParameters);
@@ -1173,6 +1227,8 @@ namespace FluentHelper.ElasticSearch.Tests
         {
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1182,7 +1238,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Count(Arg.Any<CountRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
             var esQueryParameters = new ElasticQueryParameters<TestEntity>();
 
             Assert.Throws<InvalidOperationException>(() => esWrapper.Count(null, esQueryParameters));
@@ -1210,10 +1266,12 @@ namespace FluentHelper.ElasticSearch.Tests
             int httpStatusCode = itemExisting ? 200 : 404;
             var mockedResponse = TestableResponseFactory.CreateResponse(response, httpStatusCode, itemExisting);
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Exists(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<ExistsRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var itemExist = esWrapper.Exists(testData);
 
@@ -1236,6 +1294,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1246,7 +1306,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.ExistsAsync(Arg.Any<IndexName>(), Arg.Any<Id>(), Arg.Any<Action<ExistsRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var itemExist = await esWrapper.ExistsAsync(testData);
 
@@ -1269,6 +1329,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1279,7 +1341,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Get<TestEntity>(Arg.Any<IndexName>(), Arg.Any<Id>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var sourceData = esWrapper.GetSource(testData);
 
@@ -1313,6 +1375,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1323,7 +1387,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.GetAsync<TestEntity>(Arg.Any<IndexName>(), Arg.Any<Id>()).Returns(mockedResponse);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var sourceData = await esWrapper.GetSourceAsync(testData);
 
@@ -1363,10 +1427,12 @@ namespace FluentHelper.ElasticSearch.Tests
             });
             esIndicesClient.Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var result = esWrapper.CreateIndex<TestEntity>(indexName);
             Assert.That(result, Is.EqualTo(true));
@@ -1389,6 +1455,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1397,7 +1465,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             string indexName = esWrapper.GetIndexName(testData);
 
@@ -1425,6 +1493,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1440,7 +1510,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var result = esWrapper.CreateIndex<TestEntity>(indexName);
             Assert.That(result, Is.EqualTo(false));
@@ -1470,10 +1540,12 @@ namespace FluentHelper.ElasticSearch.Tests
             });
             esIndicesClient.Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             Assert.Throws<InvalidOperationException>(() => esWrapper.CreateIndex<TestEntity>(indexName));
 
@@ -1487,6 +1559,8 @@ namespace FluentHelper.ElasticSearch.Tests
             string indexName = "An_Index";
 
             var elasticMap = new TestThirdEntityMap();
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1505,7 +1579,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var result = await esWrapper.CreateIndexAsync<TestThirdEntity>(indexName);
             Assert.That(result, Is.EqualTo(true));
@@ -1520,6 +1594,8 @@ namespace FluentHelper.ElasticSearch.Tests
             string indexName = "An_Index";
 
             var elasticMap = new TestEntityMap();
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1536,7 +1612,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var result = await esWrapper.CreateIndexAsync<TestEntity>(indexName);
             Assert.That(result, Is.EqualTo(false));
@@ -1559,6 +1635,8 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticMap = new TestEntityMap();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
@@ -1567,7 +1645,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             string indexName = esWrapper.GetIndexName(testData);
 
@@ -1607,10 +1685,12 @@ namespace FluentHelper.ElasticSearch.Tests
             });
             esIndicesClient.PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var result = esWrapper.CreateIndexTemplate<TestEntity>();
             Assert.That(result, Is.EqualTo(true));
@@ -1623,6 +1703,8 @@ namespace FluentHelper.ElasticSearch.Tests
         public void Verify_CreateIndexTemplate_ReturnFalseWhenTemplateAlreadyExists()
         {
             var elasticMap = new TestEntityMap();
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1639,7 +1721,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var result = esWrapper.CreateIndexTemplate<TestEntity>();
             Assert.That(result, Is.EqualTo(false));
@@ -1662,10 +1744,12 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [testEntityMap, secondEntityMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [testEntityMap, secondEntityMap]);
 
             Assert.Throws<InvalidOperationException>(() => esWrapper.CreateIndexTemplate<TestEntity>(secondEntityMap));
 
@@ -1677,6 +1761,8 @@ namespace FluentHelper.ElasticSearch.Tests
         public void Verify_CreateIndexTemplate_ThrowsOnInvalidResponse()
         {
             var elasticMap = new TestEntityMap();
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1695,7 +1781,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             Assert.Throws<InvalidOperationException>(() => esWrapper.CreateIndexTemplate<TestEntity>());
 
@@ -1722,10 +1808,12 @@ namespace FluentHelper.ElasticSearch.Tests
             });
             esIndicesClient.PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var result = await esWrapper.CreateIndexTemplateAsync<TestSecondEntity>();
             Assert.That(result, Is.EqualTo(true));
@@ -1738,6 +1826,8 @@ namespace FluentHelper.ElasticSearch.Tests
         public async Task Verify_CreateIndexTemplateAsync_ReturnFalseWhenTemplateAlreadyExists()
         {
             var elasticMap = new TestEntityMap();
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
@@ -1754,7 +1844,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var result = await esWrapper.CreateIndexTemplateAsync<TestEntity>();
             Assert.That(result, Is.EqualTo(false));
@@ -1777,10 +1867,12 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var esIndicesClient = Substitute.For<Elastic.Clients.Elasticsearch.IndexManagement.IndicesNamespacedClient>();
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [testEntityMap, secondEntityMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [testEntityMap, secondEntityMap]);
 
             Assert.ThrowsAsync<InvalidOperationException>(async () => await esWrapper.CreateIndexTemplateAsync<TestEntity>(secondEntityMap));
 
@@ -1791,6 +1883,7 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void Verify_CreateAllMappedIndexTemplate_WorksCorrectly()
         {
+            var loggerFactory = Substitute.For<ILoggerFactory>();
             var elasticMap = new TestEntityMap();
             var secondEntityMap = new TestSecondEntityMap();
             var thirdEntityMap = new TestThirdEntityMap();
@@ -1821,7 +1914,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
 
             var result = esWrapper.CreateAllMappedIndexTemplate();
             Assert.That(result, Is.Not.Null);
@@ -1864,10 +1957,12 @@ namespace FluentHelper.ElasticSearch.Tests
             });
             esIndicesClient.PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateFailedMockedResponse);
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
 
             var result = esWrapper.CreateAllMappedIndexTemplate();
             Assert.That(result, Is.Not.Null);
@@ -1883,6 +1978,7 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public async Task Verify_CreateAllMappedIndexTemplateAsync_WorksCorrectly()
         {
+            var loggerFactory = Substitute.For<ILoggerFactory>();
             var elasticMap = new TestEntityMap();
             var secondEntityMap = new TestSecondEntityMap();
             var thirdEntityMap = new TestThirdEntityMap();
@@ -1913,7 +2009,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
 
             var result = await esWrapper.CreateAllMappedIndexTemplateAsync();
             Assert.That(result, Is.Not.Null);
@@ -1929,6 +2025,7 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public async Task Verify_CreateAllMappedIndexTemplateAsync_WorksCorrectlyWithFailedTemplate()
         {
+            var loggerFactory = Substitute.For<ILoggerFactory>();
             var elasticMap = new TestEntityMap();
             var secondEntityMap = new TestSecondEntityMap();
             var thirdEntityMap = new TestThirdEntityMap();
@@ -1959,7 +2056,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
 
-            var esWrapper = new ElasticWrapper(esClient, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap, secondEntityMap, thirdEntityMap]);
 
             var result = await esWrapper.CreateAllMappedIndexTemplateAsync();
             Assert.That(result, Is.Not.Null);
@@ -1977,6 +2074,8 @@ namespace FluentHelper.ElasticSearch.Tests
         {
             int logActionCalls = 0;
 
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
             elasticConfig.LogAction.Returns((loglevel, exception, message, args) =>
@@ -1984,7 +2083,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 logActionCalls++;
             });
 
-            var esWrapper = new ElasticWrapper(elasticConfig, []);
+            var esWrapper = new ElasticWrapper(loggerFactory, elasticConfig, []);
 
             var elasticClient = esWrapper.GetOrCreateClient();
             Assert.That(elasticClient, Is.Not.Null);

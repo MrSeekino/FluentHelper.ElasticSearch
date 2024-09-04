@@ -5,6 +5,7 @@ using Elastic.Transport.Products.Elasticsearch;
 using FluentHelper.ElasticSearch.IndexCalculators;
 using FluentHelper.ElasticSearch.Interfaces;
 using FluentHelper.ElasticSearch.QueryParameters;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -23,16 +24,18 @@ namespace FluentHelper.ElasticSearch.Common
         private readonly static JsonSerializerOptions _jsonSerializerOptions = new() { ReferenceHandler = ReferenceHandler.IgnoreCycles };
 
         private ElasticsearchClient? _client;
+        private readonly ILogger _logger;
         private readonly IElasticConfig _elasticConfig;
         private readonly Dictionary<Type, IElasticMap> _entityMappingList;
 
         public int MappingLength => _entityMappingList.Count;
 
-        public ElasticWrapper(IElasticConfig elasticConfig, IEnumerable<IElasticMap> mappings)
-            : this(null, elasticConfig, mappings) { }
+        public ElasticWrapper(ILoggerFactory loggerFactory, IElasticConfig elasticConfig, IEnumerable<IElasticMap> mappings)
+            : this(null, loggerFactory, elasticConfig, mappings) { }
 
-        public ElasticWrapper(ElasticsearchClient? client, IElasticConfig elasticConfig, IEnumerable<IElasticMap> mappings)
+        public ElasticWrapper(ElasticsearchClient? client, ILoggerFactory loggerFactory, IElasticConfig elasticConfig, IEnumerable<IElasticMap> mappings)
         {
+            _logger = loggerFactory.CreateLogger("FluentHelper.ElasticSearch");
             _client = client;
             _elasticConfig = elasticConfig;
 
@@ -44,6 +47,14 @@ namespace FluentHelper.ElasticSearch.Common
 
                 _entityMappingList.Add(elasticMap.GetMappingType(), elasticMap);
             }
+        }
+
+        private void Log(LogLevel logLevel, Exception? exception, string message, object?[] args)
+        {
+            if (_elasticConfig.LogAction != null)
+                _elasticConfig.LogAction.Invoke(logLevel, exception, message, args);
+            else
+                _logger.Log(logLevel, exception, message, args);
         }
 
         internal void CreateClient()
@@ -73,7 +84,7 @@ namespace FluentHelper.ElasticSearch.Common
 
             _client = new ElasticsearchClient(esSettings);
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Trace, null, "ElasticClient created", []);
+            Log(Microsoft.Extensions.Logging.LogLevel.Trace, null, "ElasticClient created", []);
         }
 
         public ElasticsearchClient GetOrCreateClient()
@@ -105,7 +116,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
                 throw new InvalidOperationException("Could not add data", new Exception(SerializeResponse(addResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), addResponse.Index]);
+            Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), addResponse.Index]);
         }
 
         public int BulkAdd<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
@@ -180,11 +191,11 @@ namespace FluentHelper.ElasticSearch.Common
             if (!bulkResponse.IsValidResponse || bulkResponse.Errors)
             {
                 bulkResponse.TryGetOriginalException(out Exception? exception);
-                _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, exception, "Could not BulkAdd some data on index {indexName}", [indexName]);
+                Log(Microsoft.Extensions.Logging.LogLevel.Error, exception, "Could not BulkAdd some data on index {indexName}", [indexName]);
                 return 0;
             }
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Added {addNumber} to {indexName}", [addNumber, indexName]);
+            Log(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Added {addNumber} to {indexName}", [addNumber, indexName]);
             return addNumber;
         }
 
@@ -227,7 +238,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
                 throw new InvalidOperationException("Could not update data", new Exception(SerializeResponse(updateResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), updateResponse.Index]);
+            Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), updateResponse.Index]);
         }
 
         public IEnumerable<TEntity> Query<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
@@ -338,7 +349,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
                 throw new InvalidOperationException("Could not delete data", new Exception(SerializeResponse(deleteResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), deleteResponse.Index]);
+            Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), deleteResponse.Index]);
         }
 
         public bool Exists<TEntity>(TEntity inputData) where TEntity : class
@@ -503,7 +514,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!createIndexReponse.IsValidResponse)
                 throw new InvalidOperationException($"Could not create index {createIndexReponse.Index} for {typeof(TEntity).Name}", new Exception(SerializeResponse(createIndexReponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Index {indexName} created", [createIndexReponse.Index]);
+            Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "Index {indexName} created", [createIndexReponse.Index]);
         }
 
         public (int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates) CreateAllMappedIndexTemplate()
@@ -657,7 +668,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!putTemplateResponse.IsValidResponse)
                 throw new InvalidOperationException($"Could not create template {templateName} for {mapInstance.GetMappingType().Name} with patterns {indexPatterns}", new Exception(SerializeResponse(putTemplateResponse)));
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Information, null, "Template {templateName} created", [templateName]);
+            Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "Template {templateName} created", [templateName]);
         }
 
         private void AfterQueryResponse(ElasticsearchResponse queryResponse, bool trapWhenInvalid = true)
@@ -667,11 +678,11 @@ namespace FluentHelper.ElasticSearch.Common
                 if (!queryResponse.TryGetOriginalException(out var originalException))
                     originalException = null;
 
-                _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Error, originalException, queryResponse!.DebugInformation, []);
+                Log(Microsoft.Extensions.Logging.LogLevel.Error, originalException, queryResponse!.DebugInformation, []);
                 return;
             }
 
-            _elasticConfig.LogAction?.Invoke(Microsoft.Extensions.Logging.LogLevel.Debug, null, queryResponse!.DebugInformation, []);
+            Log(Microsoft.Extensions.Logging.LogLevel.Debug, null, queryResponse!.DebugInformation, []);
         }
 
         private string SerializeResponse<T>(T response)

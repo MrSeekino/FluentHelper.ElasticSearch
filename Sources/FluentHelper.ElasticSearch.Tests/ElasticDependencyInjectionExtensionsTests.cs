@@ -19,6 +19,9 @@ namespace FluentHelper.ElasticSearch.Tests
             string certFingerPrint = "abcdef";
 
             IServiceCollection serviceCollection = new ServiceCollection();
+
+            serviceCollection.AddLogging();
+
             serviceCollection.AddFluentElasticWrapper(esConfigBuilder =>
             {
                 esConfigBuilder
