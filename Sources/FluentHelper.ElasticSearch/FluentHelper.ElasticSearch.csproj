@@ -7,7 +7,7 @@
 		<PackageId>FluentHelper.ElasticSearch</PackageId>
 		<Title>FluentHelper.ElasticSearch</Title>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<Version>8.2.2</Version>
+		<Version>8.2.3</Version>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<Product>FluentHelper.ElasticSearch</Product>
 		<PackageProjectUrl>https://github.com/MrSeekino/FluentHelper.ElasticSearch</PackageProjectUrl>
