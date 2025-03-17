@@ -17,8 +17,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Elastic.Clients.Elasticsearch" Version="8.12.1" />
-		<PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+		<PackageReference Include="Elastic.Clients.Elasticsearch" Version="8.17.3" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
 	</ItemGroup>
 
 </Project>

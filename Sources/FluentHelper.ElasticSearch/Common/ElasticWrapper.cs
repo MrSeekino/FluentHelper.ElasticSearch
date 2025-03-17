@@ -98,14 +98,16 @@ namespace FluentHelper.ElasticSearch.Common
         public void Add<TEntity>(TEntity inputData) where TEntity : class
         {
             CreateIndexFromData(inputData);
-            var addResponse = GetOrCreateClient().Index(inputData, GetIndexName(inputData));
+            IndexName indexName = GetIndexName(inputData);
+            var addResponse = GetOrCreateClient().Index(inputData, indexName);
             CheckAddResponse(inputData, addResponse);
         }
 
         public async Task AddAsync<TEntity>(TEntity inputData, CancellationToken cancellationToken = default) where TEntity : class
         {
             await CreateIndexFromDataAsync(inputData, cancellationToken);
-            var addResponse = await GetOrCreateClient().IndexAsync(inputData, GetIndexName(inputData), cancellationToken);
+            IndexName indexName = GetIndexName(inputData);
+            var addResponse = await GetOrCreateClient().IndexAsync(inputData, indexName, cancellationToken);
             CheckAddResponse(inputData, addResponse);
         }
 
