@@ -1,6 +1,7 @@
 ﻿using FluentHelper.ElasticSearch.Common;
 using FluentHelper.ElasticSearch.TestsSupport;
 using NUnit.Framework;
+using System.Security.Cryptography.X509Certificates;
 
 namespace FluentHelper.ElasticSearch.Tests
 {
@@ -70,21 +71,52 @@ namespace FluentHelper.ElasticSearch.Tests
         }
 
         [Test]
-        public void Verify_WithAuthorization_WorksCorrectly_WithFingerPrintOnly()
+        public void Verify_WithoutCertificateValidation_WorksCorrectly()
+        {
+            var elasticConfigBuilder = ElasticConfigBuilder.Create()
+                                            .WithoutCertificateValidation();
+
+            var elasticConfig = elasticConfigBuilder.Build();
+            Assert.That(elasticConfig, Is.Not.Null);
+            Assert.That(elasticConfig.CertificateFingerprint, Is.EqualTo(string.Empty));
+            Assert.That(elasticConfig.SkipCertificateValidation, Is.True);
+            Assert.That(elasticConfig.CertificateFile, Is.Null);
+        }
+
+        [Test]
+        public void Verify_WithCertificate_WorksCorrectly_WithFingerPrint()
         {
             string certFingerPrint = "abcdef";
 
             var elasticConfigBuilder = ElasticConfigBuilder.Create()
-                                            .WithAuthorization(certFingerPrint);
+                                            .WithCertificate(certFingerPrint);
 
             var elasticConfig = elasticConfigBuilder.Build();
             Assert.That(elasticConfig, Is.Not.Null);
             Assert.That(elasticConfig.CertificateFingerprint, Is.EqualTo(certFingerPrint));
-            Assert.That(elasticConfig.BasicAuthentication, Is.Null);
+            Assert.That(elasticConfig.SkipCertificateValidation, Is.False);
+            Assert.That(elasticConfig.CertificateFile, Is.Null);
         }
 
         [Test]
-        public void Verify_WithAuthorization_WorksCorrectly_WithBasicAuthOnly()
+        public void Verify_WithCertificate_WorksCorrectly_WithFile()
+        {
+            byte[] certData = Convert.FromBase64String("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlDYkRDQ0FkV2dBd0lCQWdJQkFEQU5CZ2txaGtpRzl3MEJBUTBGQURCVE1Rc3dDUVlEVlFRR0V3SnBkREVMDQpNQWtHQTFVRUNBd0NTVlF4RFRBTEJnTlZCQW9NQkZSbGMzUXhLREFtQmdOVkJBTU1IMlpzZFdWdWRHaGxiSEJsDQpjaTVsYkdGemRHbGpjMlZoY21Ob0xuUmxjM1F3SGhjTk1qVXdNekU0TVRZeE5UQTVXaGNOTWpZd016RTRNVFl4DQpOVEE1V2pCVE1Rc3dDUVlEVlFRR0V3SnBkREVMTUFrR0ExVUVDQXdDU1ZReERUQUxCZ05WQkFvTUJGUmxjM1F4DQpLREFtQmdOVkJBTU1IMlpzZFdWdWRHaGxiSEJsY2k1bGJHRnpkR2xqYzJWaGNtTm9MblJsYzNRd2daOHdEUVlKDQpLb1pJaHZjTkFRRUJCUUFEZ1kwQU1JR0pBb0dCQU14OG54T2tsbVhTWDh6d0hpdlVDM0dQK29KazdsMllCci9CDQowemtLdTNxdDVTV3ZtK1I5Ym5wUjdvMTFnbE5IakFQUjJGY2k4MGxQQklIWWJZcm16QSthMUwxdmJaMFpERXlXDQpjZ1YvYk1Xcmw2Rml5OWpRaVJ6RFRCWmN1VHcvQW55c3RaclpTVlRlbm1pNUxUOVVXWnQvSnpPM3FrR1U3TE5JDQpySXVOdVRmM0FnTUJBQUdqVURCT01CMEdBMVVkRGdRV0JCUlkrdlQwSmxiQTVZS2RBb2E5MlVKWnVaWS8rREFmDQpCZ05WSFNNRUdEQVdnQlJZK3ZUMEpsYkE1WUtkQW9hOTJVSlp1WlkvK0RBTUJnTlZIUk1FQlRBREFRSC9NQTBHDQpDU3FHU0liM0RRRUJEUVVBQTRHQkFENys4cllQUWd6WlFXNjNzemtJMDRFa3JySHZFWTUxc3NwS252Q0swelhvDQpVbXhGdFBNTFFld3oxdHE3bjVORitSYjVKS3V2OGpPWVhKVVMzbE1lK2gwV0k5eWdGSmhzTHFSTytCUnBadTRBDQoyWDI1K3FKajB1MXhCUG9haDRBMjBuMkp3L1FJUHN6djRTOWN6SVZZSFRXWlN3N0JRQlVoS2dWeFpnaXNlcGgyDQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t");
+            var certFile = new X509Certificate2(certData);
+
+            var elasticConfigBuilder = ElasticConfigBuilder.Create()
+                                            .WithCertificate(certFile);
+
+            var elasticConfig = elasticConfigBuilder.Build();
+            Assert.That(elasticConfig, Is.Not.Null);
+            Assert.That(elasticConfig.CertificateFingerprint, Is.EqualTo(string.Empty));
+            Assert.That(elasticConfig.SkipCertificateValidation, Is.False);
+            Assert.That(elasticConfig.CertificateFile, Is.Not.Null);
+            Assert.That(elasticConfig.CertificateFile!.RawData, Is.EqualTo(certFile.RawData));
+        }
+
+        [Test]
+        public void Verify_WithAuthorization_WorksCorrectly()
         {
             string username = "username";
             string password = "password";
@@ -95,27 +127,6 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticConfig = elasticConfigBuilder.Build();
             Assert.That(elasticConfig, Is.Not.Null);
-            Assert.That(elasticConfig.CertificateFingerprint, Is.EqualTo(string.Empty));
-            Assert.That(elasticConfig.BasicAuthentication, Is.Not.Null);
-            Assert.That(elasticConfig.BasicAuthentication!.Value.Username, Is.EqualTo(username));
-            Assert.That(elasticConfig.BasicAuthentication!.Value.Password, Is.EqualTo(password));
-        }
-
-        [Test]
-        public void Verify_WithAuthorization_WorksCorrectly()
-        {
-            string username = "username";
-            string password = "password";
-            (string username, string password) basicAuth = new(username, password);
-
-            string certFingerPrint = "abcdef";
-
-            var elasticConfigBuilder = ElasticConfigBuilder.Create()
-                                            .WithAuthorization(certFingerPrint, basicAuth);
-
-            var elasticConfig = elasticConfigBuilder.Build();
-            Assert.That(elasticConfig, Is.Not.Null);
-            Assert.That(elasticConfig.CertificateFingerprint, Is.EqualTo(certFingerPrint));
             Assert.That(elasticConfig.BasicAuthentication, Is.Not.Null);
             Assert.That(elasticConfig.BasicAuthentication!.Value.Username, Is.EqualTo(username));
             Assert.That(elasticConfig.BasicAuthentication!.Value.Password, Is.EqualTo(password));

@@ -10,7 +10,9 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Net.Security;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -67,8 +69,32 @@ namespace FluentHelper.ElasticSearch.Common
             if (_elasticConfig.EnableDebug)
                 esSettings.EnableDebugMode(_elasticConfig.RequestCompleted!);
 
-            if (!string.IsNullOrWhiteSpace(_elasticConfig.CertificateFingerprint))
-                esSettings.CertificateFingerprint(_elasticConfig.CertificateFingerprint);
+            if (!_elasticConfig.SkipCertificateValidation)
+            {
+                if (_elasticConfig.CertificateFile != null)
+                {
+                    esSettings.ServerCertificateValidationCallback((message, certificate, chain, sslErrors) =>
+                    {
+                        if (sslErrors == SslPolicyErrors.None)
+                            return true;
+
+                        if (certificate == null)
+                            return false;
+
+                        if (chain == null)
+                            return false;
+
+                        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+                        chain.ChainPolicy.CustomTrustStore.Add(_elasticConfig.CertificateFile);
+
+                        return chain.Build(new X509Certificate2(certificate));
+                    });
+                }
+                else if (!string.IsNullOrWhiteSpace(_elasticConfig.CertificateFingerprint))
+                    esSettings.CertificateFingerprint(_elasticConfig.CertificateFingerprint);
+            }
+            else
+                esSettings.ServerCertificateValidationCallback(CertificateValidations.AllowAll);
 
             if (_elasticConfig.BasicAuthentication != null)
                 esSettings.Authentication(new BasicAuthentication(_elasticConfig.BasicAuthentication.Value.Username, _elasticConfig.BasicAuthentication.Value.Password));

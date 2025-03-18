@@ -26,7 +26,8 @@ namespace FluentHelper.ElasticSearch.Tests
             {
                 esConfigBuilder
                     .WithConnectionUri(url)
-                    .WithAuthorization(certFingerPrint, basicAuth)
+                    .WithCertificate(certFingerPrint)
+                    .WithAuthorization(basicAuth)
                     .WithDebugEnabled()
                     .WithMappingFromAssemblyOf<TestEntityMap>();
             });

@@ -4,13 +4,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 
 namespace FluentHelper.ElasticSearch.Common
 {
     public sealed class ElasticConfigBuilder
     {
         private List<Uri> _connectionPool;
+
+        private bool _skipCertificateValidation;
         private string _certificateFingerprint;
+        private X509Certificate2? _certificateFile;
+
         private (string Username, string Password)? _basicAuthentication;
 
         private bool _disablePing;
@@ -31,7 +36,9 @@ namespace FluentHelper.ElasticSearch.Common
         private ElasticConfigBuilder()
         {
             _connectionPool = [];
+            _skipCertificateValidation = false;
             _certificateFingerprint = string.Empty;
+            _certificateFile = null;
             _basicAuthentication = null;
             _disablePing = false;
             _enableDebug = false;
@@ -86,12 +93,42 @@ namespace FluentHelper.ElasticSearch.Common
         }
 
         /// <summary>
+        /// Skip certificate validation when connecting to elasticsearch
+        /// </summary>
+        /// <returns></returns>
+        public ElasticConfigBuilder WithoutCertificateValidation()
+        {
+            _skipCertificateValidation = true;
+            _certificateFingerprint = string.Empty;
+            _certificateFile = null;
+            return this;
+        }
+
+        /// <summary>
         /// Specify the certificate fingerprint to be used when connecting to elasticsearch
         /// </summary>
         /// <param name="certificateFingerprint">SHA256 certificate fingerprint</param>
         /// <returns></returns>
-        public ElasticConfigBuilder WithAuthorization(string certificateFingerprint)
-            => WithAuthorization(certificateFingerprint, null);
+        public ElasticConfigBuilder WithCertificate(string certificateFingerprint)
+        {
+            _skipCertificateValidation = false;
+            _certificateFingerprint = certificateFingerprint;
+            _certificateFile = null;
+            return this;
+        }
+
+        /// <summary>
+        /// Specify the certificate file to be used when connecting to elasticsearch
+        /// </summary>
+        /// <param name="certificateFile">Certificate file in x509 format</param>
+        /// <returns></returns>
+        public ElasticConfigBuilder WithCertificate(X509Certificate2 certificateFile)
+        {
+            _skipCertificateValidation = false;
+            _certificateFingerprint = string.Empty;
+            _certificateFile = certificateFile;
+            return this;
+        }
 
         /// <summary>
         /// Specify user account to be used when connecting to elasticsearch
@@ -99,22 +136,8 @@ namespace FluentHelper.ElasticSearch.Common
         /// <param name="basicAuthentication">Username and Password to be used</param>
         /// <returns></returns>
         public ElasticConfigBuilder WithAuthorization((string username, string password) basicAuthentication)
-            => WithAuthorization(null, basicAuthentication);
-
-        /// <summary>
-        /// Specify the certificate fingerprint and user account to be used when connecting to elasticsearch
-        /// </summary>
-        /// <param name="certificateFingerprint">SHA256 certificate fingerprint</param>
-        /// <param name="basicAuthentication">Username and Password to be used</param>
-        /// <returns></returns>
-        public ElasticConfigBuilder WithAuthorization(string? certificateFingerprint = null, (string username, string password)? basicAuthentication = null)
         {
-            if (!string.IsNullOrEmpty(certificateFingerprint))
-                _certificateFingerprint = certificateFingerprint;
-
-            if (basicAuthentication != null)
-                _basicAuthentication = basicAuthentication;
-
+            _basicAuthentication = basicAuthentication;
             return this;
         }
 
@@ -232,7 +255,9 @@ namespace FluentHelper.ElasticSearch.Common
             return new ElasticConfig
             {
                 ConnectionsPool = _connectionPool.ToArray(),
+                SkipCertificateValidation = _skipCertificateValidation,
                 CertificateFingerprint = _certificateFingerprint,
+                CertificateFile = _certificateFile,
                 BasicAuthentication = _basicAuthentication,
                 DisablePing = _disablePing,
                 EnableDebug = _enableDebug,

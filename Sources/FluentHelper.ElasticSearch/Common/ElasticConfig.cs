@@ -3,13 +3,18 @@ using FluentHelper.ElasticSearch.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 
 namespace FluentHelper.ElasticSearch.Common
 {
     internal sealed class ElasticConfig : IElasticConfig
     {
         public Uri[] ConnectionsPool { get; set; } = [];
+
+        public bool SkipCertificateValidation { get; set; }
         public string? CertificateFingerprint { get; set; }
+        public X509Certificate2? CertificateFile { get; set; }
+
         public (string Username, string Password)? BasicAuthentication { get; set; }
 
         public bool DisablePing { get; set; }
