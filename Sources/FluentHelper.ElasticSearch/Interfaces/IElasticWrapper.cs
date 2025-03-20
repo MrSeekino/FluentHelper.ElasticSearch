@@ -173,16 +173,15 @@ namespace FluentHelper.ElasticSearch.Interfaces
         /// </summary>
         /// <typeparam name="TEntity">the type of data</typeparam>
         /// <param name="inputData">the data that the index will be calculated on</param>
-        /// <returns></returns>
+        /// <returns>the name of the index the input data will be mapped to</returns>
         string GetIndexName<TEntity>(TEntity inputData) where TEntity : class;
         /// <summary>
         /// Get all the indexes that will be used for a query on the specified filter
         /// </summary>
         /// <typeparam name="TEntity">the type of data</typeparam>
         /// <param name="baseObjectFilter">the base filter to be used when using custom index calculator</param>
-        /// <returns></returns>
+        /// <returns>the name of the indexes that match the object filter</returns>
         string GetIndexNamesForQueries<TEntity>(object? baseObjectFilter) where TEntity : class;
-
 
         /// <summary>
         /// Create an index with the provided name and configured mapping
@@ -266,5 +265,20 @@ namespace FluentHelper.ElasticSearch.Interfaces
         /// <param name="cancellationToken">the token to cancel the operation</param>
         /// <returns>true if the template is created, false if already exists, throws if fails</returns>
         Task<bool> CreateIndexTemplateAsync(IElasticMap mapInstance, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Get the health report of the elastic cluster
+        /// </summary>
+        /// <param name="verbose">true if the report has to be detailed</param>
+        /// <param name="size">maximum number of affected resources to return</param>
+        /// <returns>an HealthReportResponse if the query could be done, throws if fails</returns>
+        HealthReportResponse GetHealthReport(bool verbose = false, int size = 1000);
+        /// <summary>
+        /// Get the health report of the elastic cluster
+        /// </summary>
+        /// <param name="verbose">true if the report has to be detailed</param>
+        /// <param name="size">maximum number of affected resources to return</param>
+        /// <returns>an HealthReportResponse if the query could be done, throws if fails</returns>
+        Task<HealthReportResponse> GetHealthReportAsync(bool verbose = false, int size = 1000);
     }
 }

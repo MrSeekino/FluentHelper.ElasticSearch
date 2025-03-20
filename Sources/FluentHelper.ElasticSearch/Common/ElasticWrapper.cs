@@ -699,6 +699,22 @@ namespace FluentHelper.ElasticSearch.Common
             Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "Template {templateName} created", [templateName]);
         }
 
+        public HealthReportResponse GetHealthReport(bool verbose = false, int size = 1000)
+        {
+            return GetOrCreateClient().HealthReport(x =>
+            {
+                x.Size(size).Verbose(verbose);
+            });
+        }
+
+        public async Task<HealthReportResponse> GetHealthReportAsync(bool verbose = false, int size = 1000)
+        {
+            return await GetOrCreateClient().HealthReportAsync(x =>
+            {
+                x.Size(size).Verbose(verbose);
+            });
+        }
+
         private void AfterQueryResponse(ElasticsearchResponse queryResponse, bool trapWhenInvalid = true)
         {
             if (trapWhenInvalid && !queryResponse.IsValidResponse)
