@@ -1,9 +1,9 @@
 ﻿using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.Aggregations;
 using Elastic.Clients.Elasticsearch.Core.Search;
-using Elastic.Clients.Elasticsearch.Fluent;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace FluentHelper.ElasticSearch.QueryParameters
@@ -13,7 +13,7 @@ namespace FluentHelper.ElasticSearch.QueryParameters
         private QueryDescriptor<TEntity>? _queryDescriptor;
         private SourceFilter? _sourceFilter;
         private SortOptionsDescriptor<TEntity>? _sortOptionsDescriptor;
-        private FluentDescriptorDictionary<string, AggregationDescriptor<TEntity>> _aggregationDescriptors = [];
+        private Dictionary<string, AggregationDescriptor<TEntity>> _aggregationDescriptors = [];
         private int _skip;
         private int _take;
 
@@ -128,7 +128,7 @@ namespace FluentHelper.ElasticSearch.QueryParameters
         /// <returns></returns>
         public ElasticQueryParametersBuilder<TEntity> Sort(Expression<Func<TEntity, object>> field, SortOrder sortOrder)
         {
-            SortOptionsDescriptor<TEntity> sortOptionsDescriptor = new SortOptionsDescriptor<TEntity>().Field(field, new FieldSort
+            SortOptionsDescriptor<TEntity> sortOptionsDescriptor = new SortOptionsDescriptor<TEntity>().Field(new FieldSort(field)
             {
                 Order = sortOrder
             });

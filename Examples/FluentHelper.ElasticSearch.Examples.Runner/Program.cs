@@ -6,9 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 string elasticUrl = "https://localhost:9200";
-string certSha256 = "DB2514B5BD82D0331C97C85C60FCF35CDD23A45F2EFB49F19FAE76FDDFC3A271";
+string certSha256 = "44D6D42CD8E5F4AAAF3D310B1E3315109D575398BFCE81F7EE72EE1906978302";
 string username = "elastic";
-string password = "ppY4hN+Fv28ca-O+F7tp";
+string password = "x4MlkRnVbjsLdWXVY7lS";
 
 var builder = Host.CreateDefaultBuilder();
 

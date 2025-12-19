@@ -126,7 +126,7 @@ namespace FluentHelper.ElasticSearch.Common
         {
             CreateIndexFromData(inputData);
             IndexName indexName = GetIndexName(inputData);
-            var addResponse = GetOrCreateClient().Index(inputData, indexName);
+            var addResponse = GetOrCreateClient().Index(inputData, x => x.Index(indexName).Refresh(Refresh.True));
             CheckAddResponse(inputData, addResponse);
         }
 
@@ -134,7 +134,7 @@ namespace FluentHelper.ElasticSearch.Common
         {
             await CreateIndexFromDataAsync(inputData, cancellationToken);
             IndexName indexName = GetIndexName(inputData);
-            var addResponse = await GetOrCreateClient().IndexAsync(inputData, indexName, cancellationToken);
+            var addResponse = await GetOrCreateClient().IndexAsync(inputData, x => x.Index(indexName).Refresh(Refresh.True), cancellationToken);
             CheckAddResponse(inputData, addResponse);
         }
 
@@ -255,7 +255,7 @@ namespace FluentHelper.ElasticSearch.Common
 
             var elasticFieldUpdater = fieldUpdaterExpr(new ElasticFieldUpdater<TEntity>(mapInstance.IdPropertyName));
             var updateObj = inputData.GetExpandoObject(elasticFieldUpdater);
-            Action<UpdateRequestDescriptor<TEntity, ExpandoObject>> configureRequest = x => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts);
+            void configureRequest(UpdateRequestDescriptor<TEntity, ExpandoObject> x) => x.Doc(updateObj).Upsert(inputData).Refresh(Refresh.True).RetryOnConflict(retryOnConflicts);
 
             return new(indexName, inputId!.ToString()!, configureRequest);
         }
@@ -272,24 +272,21 @@ namespace FluentHelper.ElasticSearch.Common
 
         public IEnumerable<TEntity> Query<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
-            var searchDescriptor = GetSearchRequestDescriptor(baseObjectFilter, queryParameters);
-            var queryResponse = GetOrCreateClient().Search(searchDescriptor);
+            var queryResponse = GetOrCreateClient().Search<TEntity>(x => BuildSearchRequestDescriptor(x, baseObjectFilter, queryParameters));
             return CheckSearchResponse(queryResponse);
         }
 
         public async Task<IEnumerable<TEntity>> QueryAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters, CancellationToken cancellationToken = default) where TEntity : class
         {
-            var searchDescriptor = GetSearchRequestDescriptor(baseObjectFilter, queryParameters);
-            var queryResponse = await GetOrCreateClient().SearchAsync(searchDescriptor, cancellationToken).ConfigureAwait(false);
+            var queryResponse = await GetOrCreateClient().SearchAsync<TEntity>(x => BuildSearchRequestDescriptor(x, baseObjectFilter, queryParameters), cancellationToken).ConfigureAwait(false);
             return CheckSearchResponse(queryResponse);
         }
 
-        private SearchRequestDescriptor<TEntity> GetSearchRequestDescriptor<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        private SearchRequestDescriptor<TEntity> BuildSearchRequestDescriptor<TEntity>(SearchRequestDescriptor<TEntity> searchDescriptor, object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
-            var searchDescriptor = new SearchRequestDescriptor<TEntity>();
-            searchDescriptor.Index(indexNames);
+            searchDescriptor.Indices(indexNames);
             searchDescriptor.IgnoreUnavailable();
 
             if (queryParameters != null)
@@ -321,23 +318,20 @@ namespace FluentHelper.ElasticSearch.Common
 
         public long Count<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
-            var countDescriptor = GetCountRequestDescriptor(baseObjectFilter, queryParameters);
-            var countResponse = GetOrCreateClient().Count(countDescriptor);
+            var countResponse = GetOrCreateClient().Count<TEntity>(x => BuildCountRequestDescriptor(x, baseObjectFilter, queryParameters));
             return CheckCountResponse(countResponse);
         }
 
         public async Task<long> CountAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters, CancellationToken cancellationToken = default) where TEntity : class
         {
-            var countDescriptor = GetCountRequestDescriptor(baseObjectFilter, queryParameters);
-            var countResponse = await GetOrCreateClient().CountAsync(countDescriptor, cancellationToken).ConfigureAwait(false);
+            var countResponse = await GetOrCreateClient().CountAsync<TEntity>(x => BuildCountRequestDescriptor(x, baseObjectFilter, queryParameters), cancellationToken).ConfigureAwait(false);
             return CheckCountResponse(countResponse);
         }
 
-        private CountRequestDescriptor<TEntity> GetCountRequestDescriptor<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        private CountRequestDescriptor<TEntity> BuildCountRequestDescriptor<TEntity>(CountRequestDescriptor<TEntity> countDescriptor, object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
-            var countDescriptor = new CountRequestDescriptor<TEntity>();
             countDescriptor.Indices(indexNames);
             countDescriptor.IgnoreUnavailable();
 
@@ -359,24 +353,21 @@ namespace FluentHelper.ElasticSearch.Common
 
         public AggregateDictionary? Aggregate<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
-            var searchDescriptor = GetAggregateRequestDescriptor(baseObjectFilter, queryParameters);
-            var queryResponse = GetOrCreateClient().Search(searchDescriptor);
+            var queryResponse = GetOrCreateClient().Search<TEntity>(x => BuildAggregateRequestDescriptor(x, baseObjectFilter, queryParameters));
             return CheckAggregateResponse(queryResponse);
         }
 
         public async Task<AggregateDictionary?> AggregateAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters, CancellationToken cancellationToken = default) where TEntity : class
         {
-            var searchDescriptor = GetAggregateRequestDescriptor(baseObjectFilter, queryParameters);
-            var queryResponse = await GetOrCreateClient().SearchAsync(searchDescriptor, cancellationToken).ConfigureAwait(false);
+            var queryResponse = await GetOrCreateClient().SearchAsync<TEntity>(x => BuildAggregateRequestDescriptor(x, baseObjectFilter, queryParameters), cancellationToken).ConfigureAwait(false);
             return CheckAggregateResponse(queryResponse);
         }
 
-        private SearchRequestDescriptor<TEntity> GetAggregateRequestDescriptor<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        private SearchRequestDescriptor<TEntity> BuildAggregateRequestDescriptor<TEntity>(SearchRequestDescriptor<TEntity> aggregateDescriptor, object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
-            var aggregateDescriptor = new SearchRequestDescriptor<TEntity>();
-            aggregateDescriptor.Index(indexNames);
+            aggregateDescriptor.Indices(indexNames);
             aggregateDescriptor.IgnoreUnavailable();
 
             if (queryParameters != null)
@@ -391,8 +382,6 @@ namespace FluentHelper.ElasticSearch.Common
                     {
                         foreach (var agg in queryParameters.AggregationDescriptors)
                             x.Add(agg.Key, agg.Value);
-
-                        return x;
                     });
                 }
             }
@@ -533,8 +522,7 @@ namespace FluentHelper.ElasticSearch.Common
             var existResponse = GetOrCreateClient().Indices.Exists(indexName);
             if (!CheckIndexExistsResponse(existResponse))
             {
-                var requestDescriptor = GetCreateIndexRequestParameters<TEntity>(indexName);
-                var createIndexReponse = GetOrCreateClient().Indices.Create(requestDescriptor);
+                var createIndexReponse = GetOrCreateClient().Indices.Create(indexName, x => BuildCreateIndexRequestParameters<TEntity>(x));
                 CheckCreateIndexResponse<TEntity>(createIndexReponse);
 
                 return true;
@@ -555,8 +543,7 @@ namespace FluentHelper.ElasticSearch.Common
             var existResponse = await GetOrCreateClient().Indices.ExistsAsync(indexName, cancellationToken);
             if (!CheckIndexExistsResponse(existResponse))
             {
-                var requestDescriptor = GetCreateIndexRequestParameters<TEntity>(indexName);
-                var createIndexReponse = await GetOrCreateClient().Indices.CreateAsync(requestDescriptor, cancellationToken);
+                var createIndexReponse = await GetOrCreateClient().Indices.CreateAsync(indexName, x => BuildCreateIndexRequestParameters<TEntity>(x), cancellationToken);
                 CheckCreateIndexResponse<TEntity>(createIndexReponse);
 
                 return true;
@@ -565,10 +552,9 @@ namespace FluentHelper.ElasticSearch.Common
             return false;
         }
 
-        private CreateIndexRequestDescriptor GetCreateIndexRequestParameters<TEntity>(string indexName) where TEntity : class
+        private CreateIndexRequestDescriptor BuildCreateIndexRequestParameters<TEntity>(CreateIndexRequestDescriptor createIndexRequestDescriptor) where TEntity : class
         {
             var mapInstance = _entityMappingList[typeof(TEntity)];
-            CreateIndexRequestDescriptor createIndexRequestDescriptor = new(indexName);
 
             if (!mapInstance.CreateTemplate)
             {
@@ -663,14 +649,13 @@ namespace FluentHelper.ElasticSearch.Common
 
         public bool CreateIndexTemplate(IElasticMap mapInstance)
         {
-            var templateParameters = GetCreateTemplateParameters(mapInstance);
+            var (templateName, indexPatterns) = GetCreateTemplateParameters(mapInstance);
 
-            var existsIndexTemplateResponse = GetOrCreateClient().Indices.ExistsIndexTemplate(templateParameters.TemplateName);
+            var existsIndexTemplateResponse = GetOrCreateClient().Indices.ExistsIndexTemplate(templateName);
             if (!CheckIndexTemplateExistsResponse(existsIndexTemplateResponse))
             {
-                var requestDescriptor = GetIndexTemplateRequest(templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
-                var putTemplateResponse = GetOrCreateClient().Indices.PutIndexTemplate(requestDescriptor);
-                CheckPutIndexTemplateResponse(putTemplateResponse, templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
+                var putTemplateResponse = GetOrCreateClient().Indices.PutIndexTemplate(templateName, x => BuildIndexTemplateRequest(x, indexPatterns, mapInstance));
+                CheckPutIndexTemplateResponse(putTemplateResponse, templateName, indexPatterns, mapInstance);
 
                 return true;
             }
@@ -694,14 +679,13 @@ namespace FluentHelper.ElasticSearch.Common
 
         public async Task<bool> CreateIndexTemplateAsync(IElasticMap mapInstance, CancellationToken cancellationToken = default)
         {
-            var templateParameters = GetCreateTemplateParameters(mapInstance);
+            var (templateName, indexPatterns) = GetCreateTemplateParameters(mapInstance);
 
-            var existsIndexTemplateResponse = await GetOrCreateClient().Indices.ExistsIndexTemplateAsync(templateParameters.TemplateName, cancellationToken);
+            var existsIndexTemplateResponse = await GetOrCreateClient().Indices.ExistsIndexTemplateAsync(templateName, cancellationToken);
             if (!CheckIndexTemplateExistsResponse(existsIndexTemplateResponse))
             {
-                var requestDescriptor = GetIndexTemplateRequest(templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
-                var putTemplateResponse = await GetOrCreateClient().Indices.PutIndexTemplateAsync(requestDescriptor, cancellationToken);
-                CheckPutIndexTemplateResponse(putTemplateResponse, templateParameters.TemplateName, templateParameters.IndexPatterns, mapInstance);
+                var putTemplateResponse = await GetOrCreateClient().Indices.PutIndexTemplateAsync(templateName, x => BuildIndexTemplateRequest(x, indexPatterns, mapInstance), cancellationToken);
+                CheckPutIndexTemplateResponse(putTemplateResponse, templateName, indexPatterns, mapInstance);
 
                 return true;
             }
@@ -719,9 +703,8 @@ namespace FluentHelper.ElasticSearch.Common
             return new(templateName, indexPatterns);
         }
 
-        private static PutIndexTemplateRequestDescriptor GetIndexTemplateRequest(string templateName, string indexPatterns, IElasticMap mapInstance)
+        private static PutIndexTemplateRequestDescriptor BuildIndexTemplateRequest(PutIndexTemplateRequestDescriptor requestDescriptor, string indexPatterns, IElasticMap mapInstance)
         {
-            PutIndexTemplateRequestDescriptor requestDescriptor = new(templateName);
             requestDescriptor.IndexPatterns(indexPatterns);
 
             requestDescriptor.Template(t =>
@@ -783,7 +766,7 @@ namespace FluentHelper.ElasticSearch.Common
             Log(Microsoft.Extensions.Logging.LogLevel.Debug, null, queryResponse!.DebugInformation, []);
         }
 
-        private string SerializeResponse<T>(T response)
+        private static string SerializeResponse<T>(T response)
         {
             return System.Text.Json.JsonSerializer.Serialize(response, _jsonSerializerOptions);
         }

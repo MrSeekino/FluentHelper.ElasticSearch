@@ -1,7 +1,6 @@
 ﻿using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.Aggregations;
 using Elastic.Clients.Elasticsearch.Core.Search;
-using Elastic.Clients.Elasticsearch.Fluent;
 using Elastic.Transport;
 using FluentHelper.ElasticSearch.Common;
 using FluentHelper.ElasticSearch.IndexCalculators;
@@ -226,13 +225,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
             IndexName indexName = esWrapper.GetIndexName(testData);
 
-            esClient.Index(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse).AndDoes(x =>
+            esClient.Index(Arg.Any<TestEntity>(), Arg.Any<Action<IndexRequestDescriptor<TestEntity>>>()).Returns(mockedResponse).AndDoes(x =>
             {
                 var dataToAdd = x.Arg<TestEntity>();
-                var indexUsed = x.Arg<IndexName>();
+                var indexUsed = x.Arg<Action<IndexRequestDescriptor<TestEntity>>>();
 
                 Assert.That(dataToAdd.Id, Is.EqualTo(testData.Id));
-                Assert.That(indexUsed, Is.EqualTo(indexName));
+                Assert.That(indexUsed, Is.Not.Null);
             });
 
             esWrapper.Add(testData);
@@ -271,13 +270,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
             IndexName indexName = esWrapper.GetIndexName(testData);
 
-            esClient.IndexAsync(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse).AndDoes(x =>
+            esClient.IndexAsync(Arg.Any<TestEntity>(), Arg.Any<Action<IndexRequestDescriptor<TestEntity>>>()).Returns(mockedResponse).AndDoes(x =>
             {
                 var dataToAdd = x.Arg<TestEntity>();
-                var indexUsed = x.Arg<IndexName>();
+                var indexUsed = x.Arg<Action<IndexRequestDescriptor<TestEntity>>>();
 
                 Assert.That(dataToAdd.Id, Is.EqualTo(testData.Id));
-                Assert.That(indexUsed, Is.EqualTo(indexName));
+                Assert.That(indexUsed, Is.Not.Null);
             });
 
             await esWrapper.AddAsync(testData);
@@ -312,7 +311,7 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
-            esClient.Index(Arg.Any<TestEntity>(), Arg.Any<IndexName>()).Returns(mockedResponse);
+            esClient.Index(Arg.Any<TestEntity>(), Arg.Any<Action<IndexRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
@@ -322,8 +321,8 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void Verify_BulkAdd_WorksCorrectly()
         {
-            List<TestEntity> dataList = new()
-            {
+            List<TestEntity> dataList =
+            [
                 new TestEntity
                 {
                     Id = Guid.NewGuid(),
@@ -348,7 +347,7 @@ namespace FluentHelper.ElasticSearch.Tests
                     CreationTime = DateTime.UtcNow,
                     Active = true
                 }
-            };
+            ];
 
             var elasticMap = new TestEntityMap();
 
@@ -380,8 +379,8 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public async Task Verify_BulkAddAsync_WorksCorrectly()
         {
-            List<TestEntity> dataList = new()
-            {
+            List<TestEntity> dataList =
+            [
                 new TestEntity
                 {
                     Id = Guid.NewGuid(),
@@ -406,7 +405,7 @@ namespace FluentHelper.ElasticSearch.Tests
                     CreationTime = DateTime.UtcNow,
                     Active = true
                 }
-            };
+            ];
 
             var elasticMap = new TestEntityMap();
 
@@ -462,8 +461,8 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void Verify_BulkAdd_WorksCorrectly_WithASingleBulk()
         {
-            List<TestEntity> dataList = new()
-            {
+            List<TestEntity> dataList =
+            [
                 new TestEntity
                 {
                     Id = Guid.NewGuid(),
@@ -488,7 +487,7 @@ namespace FluentHelper.ElasticSearch.Tests
                     CreationTime = DateTime.UtcNow,
                     Active = true
                 }
-            };
+            ];
 
             var elasticMap = new TestEntityMap();
 
@@ -522,8 +521,8 @@ namespace FluentHelper.ElasticSearch.Tests
         {
             int totalErrorMessages = 0;
 
-            List<TestEntity> dataList = new()
-            {
+            List<TestEntity> dataList =
+            [
                 new TestEntity
                 {
                     Id = Guid.NewGuid(),
@@ -548,7 +547,7 @@ namespace FluentHelper.ElasticSearch.Tests
                     CreationTime = DateTime.UtcNow,
                     Active = true
                 }
-            };
+            ];
 
             var elasticMap = new TestEntityMap();
 
@@ -880,8 +879,8 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void Verify_Query_WorksCorrectly()
         {
-            List<TestEntity> dataList = new()
-            {
+            List<TestEntity> dataList =
+            [
                 new TestEntity
                 {
                     Id = Guid.NewGuid(),
@@ -906,7 +905,7 @@ namespace FluentHelper.ElasticSearch.Tests
                     CreationTime = DateTime.UtcNow,
                     Active = true
                 }
-            };
+            ];
 
             var elasticMap = new TestEntityMap();
 
@@ -919,18 +918,18 @@ namespace FluentHelper.ElasticSearch.Tests
             {
                 HitsMetadata = new HitsMetadata<TestEntity>()
                 {
-                    Hits = dataList.Select(x => new Hit<TestEntity>
+                    Hits = dataList.Select(x => new Hit<TestEntity>(x.Id.ToString(), "index_name")
                     {
                         Id = x.Id.ToString(),
                         Source = x
                     }).ToList(),
-                    Total = new TotalHits() { Value = 3 }
+                    Total = new TotalHits(TotalHitsRelation.Eq, 3)
                 }
             };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
             var esClient = Substitute.For<ElasticsearchClient>();
-            esClient.Search(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+            esClient.Search(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
@@ -941,15 +940,15 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var itemList = esWrapper.Query(null, esQueryParameters);
-            esClient.Received(1).Search(Arg.Any<SearchRequestDescriptor<TestEntity>>());
+            esClient.Received(1).Search(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>());
             Assert.That(itemList.Count(), Is.EqualTo(3));
         }
 
         [Test]
         public void Verify_Query_WorksCorrectly_WithAllParameters()
         {
-            List<TestEntity> dataList = new()
-            {
+            List<TestEntity> dataList =
+            [
                 new TestEntity
                 {
                     Id = Guid.NewGuid(),
@@ -974,7 +973,7 @@ namespace FluentHelper.ElasticSearch.Tests
                     CreationTime = DateTime.UtcNow,
                     Active = true
                 }
-            };
+            ];
 
             var elasticMap = new TestEntityMap();
 
@@ -987,18 +986,18 @@ namespace FluentHelper.ElasticSearch.Tests
             {
                 HitsMetadata = new HitsMetadata<TestEntity>()
                 {
-                    Hits = dataList.Select(x => new Hit<TestEntity>
+                    Hits = dataList.Select(x => new Hit<TestEntity>(x.Id.ToString(), "index_name")
                     {
                         Id = x.Id.ToString(),
                         Source = x
                     }).ToList(),
-                    Total = new TotalHits() { Value = 3 }
+                    Total = new TotalHits(TotalHitsRelation.Eq, 3)
                 }
             };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
             var esClient = Substitute.For<ElasticsearchClient>();
-            esClient.Search(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+            esClient.Search(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
@@ -1012,15 +1011,15 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var itemList = esWrapper.Query(null, esQueryParameters);
-            esClient.Received(1).Search(Arg.Any<SearchRequestDescriptor<TestEntity>>());
+            esClient.Received(1).Search(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>());
             Assert.That(itemList.Count(), Is.EqualTo(3));
         }
 
         [Test]
         public async Task Verify_QueryAsync_WorksCorrectly()
         {
-            List<TestEntity> dataList = new()
-            {
+            List<TestEntity> dataList =
+            [
                 new TestEntity
                 {
                     Id = Guid.NewGuid(),
@@ -1045,7 +1044,7 @@ namespace FluentHelper.ElasticSearch.Tests
                     CreationTime = DateTime.UtcNow,
                     Active = true
                 }
-            };
+            ];
 
             var elasticMap = new TestEntityMap();
 
@@ -1058,18 +1057,18 @@ namespace FluentHelper.ElasticSearch.Tests
             {
                 HitsMetadata = new HitsMetadata<TestEntity>()
                 {
-                    Hits = dataList.Select(x => new Hit<TestEntity>
+                    Hits = dataList.Select(x => new Hit<TestEntity>(x.Id.ToString(), "index_name")
                     {
                         Id = x.Id.ToString(),
                         Source = x
                     }).ToList(),
-                    Total = new TotalHits() { Value = 3 }
+                    Total = new TotalHits(TotalHitsRelation.Eq, 3)
                 }
             };
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
             var esClient = Substitute.For<ElasticsearchClient>();
-            esClient.SearchAsync(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+            esClient.SearchAsync(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
@@ -1080,15 +1079,15 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var itemList = await esWrapper.QueryAsync(null, esQueryParameters);
-            await esClient.Received(1).SearchAsync(Arg.Any<SearchRequestDescriptor<TestEntity>>());
+            await esClient.Received(1).SearchAsync(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>());
             Assert.That(itemList.Count(), Is.EqualTo(3));
         }
 
         [Test]
         public void Verify_Query_ThrowsWithInvalidResponse()
         {
-            List<TestEntity> dataList = new()
-            {
+            List<TestEntity> dataList =
+            [
                 new TestEntity
                 {
                     Id = Guid.NewGuid(),
@@ -1113,7 +1112,7 @@ namespace FluentHelper.ElasticSearch.Tests
                     CreationTime = DateTime.UtcNow,
                     Active = true
                 }
-            };
+            ];
 
             var elasticMap = new TestEntityMap();
 
@@ -1127,13 +1126,13 @@ namespace FluentHelper.ElasticSearch.Tests
                 HitsMetadata = new HitsMetadata<TestEntity>()
                 {
                     Hits = [],
-                    Total = new TotalHits() { Value = 0 }
+                    Total = new TotalHits(TotalHitsRelation.Eq, 0)
                 }
             };
             var mockedResponse = TestableResponseFactory.CreateResponse(response, 400, false);
 
             var esClient = Substitute.For<ElasticsearchClient>();
-            esClient.Search(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+            esClient.Search(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
@@ -1160,14 +1159,14 @@ namespace FluentHelper.ElasticSearch.Tests
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
             var esClient = Substitute.For<ElasticsearchClient>();
-            esClient.Count(Arg.Any<CountRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+            esClient.Count(Arg.Any<Action<CountRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>();
             var totalItems = esWrapper.Count(null, esQueryParameters);
 
-            esClient.Received(1).Count(Arg.Any<CountRequestDescriptor<TestEntity>>());
+            esClient.Received(1).Count(Arg.Any<Action<CountRequestDescriptor<TestEntity>>>());
             Assert.That(totalItems, Is.EqualTo(3));
         }
 
@@ -1185,7 +1184,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var loggerFactory = Substitute.For<ILoggerFactory>();
 
             var esClient = Substitute.For<ElasticsearchClient>();
-            esClient.Count(Arg.Any<CountRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+            esClient.Count(Arg.Any<Action<CountRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
@@ -1195,7 +1194,7 @@ namespace FluentHelper.ElasticSearch.Tests
             };
             var totalItems = esWrapper.Count(null, esQueryParameters);
 
-            esClient.Received(1).Count(Arg.Any<CountRequestDescriptor<TestEntity>>());
+            esClient.Received(1).Count(Arg.Any<Action<CountRequestDescriptor<TestEntity>>>());
             Assert.That(totalItems, Is.EqualTo(3));
         }
 
@@ -1213,14 +1212,14 @@ namespace FluentHelper.ElasticSearch.Tests
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
             var esClient = Substitute.For<ElasticsearchClient>();
-            esClient.CountAsync(Arg.Any<CountRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+            esClient.CountAsync(Arg.Any<Action<CountRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>();
             var totalItems = await esWrapper.CountAsync(null, esQueryParameters);
 
-            await esClient.Received(1).CountAsync(Arg.Any<CountRequestDescriptor<TestEntity>>());
+            await esClient.Received(1).CountAsync(Arg.Any<Action<CountRequestDescriptor<TestEntity>>>());
             Assert.That(totalItems, Is.EqualTo(3));
         }
 
@@ -1238,7 +1237,7 @@ namespace FluentHelper.ElasticSearch.Tests
             var mockedResponse = TestableResponseFactory.CreateResponse(response, 400, false);
 
             var esClient = Substitute.For<ElasticsearchClient>();
-            esClient.Count(Arg.Any<CountRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+            esClient.Count(Arg.Any<Action<CountRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
             var esQueryParameters = new ElasticQueryParameters<TestEntity>();
@@ -1427,7 +1426,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 var indices = x.Arg<Indices>();
                 Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
             });
-            esIndicesClient.Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
+            esIndicesClient.Create(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>()).Returns(indexCreatedMockedResponse);
 
             var loggerFactory = Substitute.For<ILoggerFactory>();
 
@@ -1440,7 +1439,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result, Is.EqualTo(true));
 
             esIndicesClient.Received(1).Exists(Arg.Any<Indices>());
-            esIndicesClient.Received(1).Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+            esIndicesClient.Received(1).Create(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>());
         }
 
         [Test]
@@ -1479,13 +1478,13 @@ namespace FluentHelper.ElasticSearch.Tests
                 var indices = x.Arg<Indices>();
                 Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
             });
-            esIndicesClient.Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
+            esIndicesClient.Create(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>()).Returns(indexCreatedMockedResponse);
 
             var result = esWrapper.CreateIndexFromData(testData);
             Assert.That(result, Is.EqualTo(true));
 
             esIndicesClient.Received(1).Exists(Arg.Any<Indices>());
-            esIndicesClient.Received(1).Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+            esIndicesClient.Received(1).Create(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>());
         }
 
         [Test]
@@ -1518,7 +1517,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result, Is.EqualTo(false));
 
             esIndicesClient.Received(1).Exists(Arg.Any<Indices>());
-            esIndicesClient.Received(0).Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+            esIndicesClient.Received(0).Create(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>());
         }
 
         [Test]
@@ -1540,7 +1539,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 var indices = x.Arg<Indices>();
                 Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
             });
-            esIndicesClient.Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
+            esIndicesClient.Create(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>()).Returns(indexCreatedMockedResponse);
 
             var loggerFactory = Substitute.For<ILoggerFactory>();
 
@@ -1552,7 +1551,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.Throws<InvalidOperationException>(() => esWrapper.CreateIndex<TestEntity>(indexName));
 
             esIndicesClient.Received(1).Exists(Arg.Any<Indices>());
-            esIndicesClient.Received(1).Create(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+            esIndicesClient.Received(1).Create(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>());
         }
 
         [Test]
@@ -1576,7 +1575,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 var indices = x.Arg<Indices>();
                 Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
             });
-            esIndicesClient.CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
+            esIndicesClient.CreateAsync(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>()).Returns(indexCreatedMockedResponse);
 
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
@@ -1587,7 +1586,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result, Is.EqualTo(true));
 
             await esIndicesClient.Received(1).ExistsAsync(Arg.Any<Indices>());
-            await esIndicesClient.Received(1).CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+            await esIndicesClient.Received(1).CreateAsync(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>());
         }
 
         [Test]
@@ -1620,7 +1619,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result, Is.EqualTo(false));
 
             await esIndicesClient.Received(1).ExistsAsync(Arg.Any<Indices>());
-            await esIndicesClient.Received(0).CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+            await esIndicesClient.Received(0).CreateAsync(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>());
         }
 
         [Test]
@@ -1659,13 +1658,13 @@ namespace FluentHelper.ElasticSearch.Tests
                 var indices = x.Arg<Indices>();
                 Assert.That(indices.First().ToString(), Is.EqualTo(indexName));
             });
-            esIndicesClient.CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>()).Returns(indexCreatedMockedResponse);
+            esIndicesClient.CreateAsync(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>()).Returns(indexCreatedMockedResponse);
 
             var result = await esWrapper.CreateIndexFromDataAsync(testData);
             Assert.That(result, Is.EqualTo(true));
 
             await esIndicesClient.Received(1).ExistsAsync(Arg.Any<Indices>());
-            await esIndicesClient.Received(1).CreateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>());
+            await esIndicesClient.Received(1).CreateAsync(Arg.Any<IndexName>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.CreateIndexRequestDescriptor>>());
         }
 
         [Test]
@@ -1685,7 +1684,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 var name = x.Arg<Name>();
                 Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
             });
-            esIndicesClient.PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
+            esIndicesClient.PutIndexTemplate(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>()).Returns(templateCreatedMockedResponse);
 
             var loggerFactory = Substitute.For<ILoggerFactory>();
 
@@ -1698,7 +1697,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result, Is.EqualTo(true));
 
             esIndicesClient.Received(1).ExistsIndexTemplate(Arg.Any<Name>());
-            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -1729,7 +1728,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result, Is.EqualTo(false));
 
             esIndicesClient.Received(1).ExistsIndexTemplate(Arg.Any<Name>());
-            esIndicesClient.Received(0).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            esIndicesClient.Received(0).PutIndexTemplate(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -1756,7 +1755,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.Throws<InvalidOperationException>(() => esWrapper.CreateIndexTemplate<TestEntity>(secondEntityMap));
 
             esIndicesClient.Received(0).ExistsIndexTemplate(Arg.Any<Name>());
-            esIndicesClient.Received(0).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            esIndicesClient.Received(0).PutIndexTemplate(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -1778,7 +1777,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 var name = x.Arg<Name>();
                 Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
             });
-            esIndicesClient.PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
+            esIndicesClient.PutIndexTemplate(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>()).Returns(templateCreatedMockedResponse);
 
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
@@ -1788,7 +1787,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.Throws<InvalidOperationException>(() => esWrapper.CreateIndexTemplate<TestEntity>());
 
             esIndicesClient.Received(1).ExistsIndexTemplate(Arg.Any<Name>());
-            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -1808,7 +1807,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 var name = x.Arg<Name>();
                 Assert.That(name.ToString(), Is.EqualTo(elasticMap.TemplateName));
             });
-            esIndicesClient.PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
+            esIndicesClient.PutIndexTemplateAsync(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>()).Returns(templateCreatedMockedResponse);
 
             var loggerFactory = Substitute.For<ILoggerFactory>();
 
@@ -1821,7 +1820,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result, Is.EqualTo(true));
 
             await esIndicesClient.Received(1).ExistsIndexTemplateAsync(Arg.Any<Name>());
-            await esIndicesClient.Received(1).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            await esIndicesClient.Received(1).PutIndexTemplateAsync(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -1852,7 +1851,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result, Is.EqualTo(false));
 
             await esIndicesClient.Received(1).ExistsIndexTemplateAsync(Arg.Any<Name>());
-            await esIndicesClient.Received(0).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            await esIndicesClient.Received(0).PutIndexTemplateAsync(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -1879,7 +1878,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.ThrowsAsync<InvalidOperationException>(async () => await esWrapper.CreateIndexTemplateAsync<TestEntity>(secondEntityMap));
 
             await esIndicesClient.Received(0).ExistsIndexTemplateAsync(Arg.Any<Name>());
-            await esIndicesClient.Received(0).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            await esIndicesClient.Received(0).PutIndexTemplateAsync(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -1911,7 +1910,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 var name = x.Arg<Name>();
                 Assert.That(name.ToString(), Is.EqualTo(secondEntityMap.TemplateName));
             });
-            esIndicesClient.PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
+            esIndicesClient.PutIndexTemplate(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>()).Returns(templateCreatedMockedResponse);
 
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
@@ -1926,7 +1925,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result.FailedTemplates, Is.EqualTo(0));
 
             esIndicesClient.Received(2).ExistsIndexTemplate(Arg.Any<Name>());
-            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -1957,7 +1956,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 var name = x.Arg<Name>();
                 Assert.That(name.ToString(), Is.EqualTo(secondEntityMap.TemplateName));
             });
-            esIndicesClient.PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateFailedMockedResponse);
+            esIndicesClient.PutIndexTemplate(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>()).Returns(templateFailedMockedResponse);
 
             var loggerFactory = Substitute.For<ILoggerFactory>();
 
@@ -1974,7 +1973,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result.FailedTemplates, Is.EqualTo(1));
 
             esIndicesClient.Received(2).ExistsIndexTemplate(Arg.Any<Name>());
-            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            esIndicesClient.Received(1).PutIndexTemplate(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -2006,7 +2005,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 var name = x.Arg<Name>();
                 Assert.That(name.ToString(), Is.EqualTo(secondEntityMap.TemplateName));
             });
-            esIndicesClient.PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateCreatedMockedResponse);
+            esIndicesClient.PutIndexTemplateAsync(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>()).Returns(templateCreatedMockedResponse);
 
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
@@ -2021,7 +2020,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result.FailedTemplates, Is.EqualTo(0));
 
             await esIndicesClient.Received(2).ExistsIndexTemplateAsync(Arg.Any<Name>());
-            await esIndicesClient.Received(1).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            await esIndicesClient.Received(1).PutIndexTemplateAsync(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -2053,7 +2052,7 @@ namespace FluentHelper.ElasticSearch.Tests
                 var name = x.Arg<Name>();
                 Assert.That(name.ToString(), Is.EqualTo(secondEntityMap.TemplateName));
             });
-            esIndicesClient.PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>()).Returns(templateFailedMockedResponse);
+            esIndicesClient.PutIndexTemplateAsync(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>()).Returns(templateFailedMockedResponse);
 
             var esClient = Substitute.For<ElasticsearchClient>();
             esClient.Indices.Returns(esIndicesClient);
@@ -2068,7 +2067,7 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(result.FailedTemplates, Is.EqualTo(1));
 
             await esIndicesClient.Received(2).ExistsIndexTemplateAsync(Arg.Any<Name>());
-            await esIndicesClient.Received(1).PutIndexTemplateAsync(Arg.Any<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>());
+            await esIndicesClient.Received(1).PutIndexTemplateAsync(Arg.Any<Name>(), Arg.Any<Action<Elastic.Clients.Elasticsearch.IndexManagement.PutIndexTemplateRequestDescriptor>>());
         }
 
         [Test]
@@ -2105,8 +2104,8 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public void Verify_Aggregations_WorksCorrectly()
         {
-            List<TestEntity> dataList = new()
-            {
+            List<TestEntity> dataList =
+            [
                 new TestEntity
                 {
                     Id = Guid.NewGuid(),
@@ -2131,7 +2130,7 @@ namespace FluentHelper.ElasticSearch.Tests
                     CreationTime = DateTime.UtcNow.Date.AddDays(-1),
                     Active = true
                 }
-            };
+            ];
 
             var elasticMap = new TestEntityMap();
 
@@ -2140,17 +2139,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
-            Dictionary<string, IAggregate> aggregationResponse = new Dictionary<string, IAggregate>
+            Dictionary<string, IAggregate> aggregationResponse = new()
             {
                 {
                     "group_by_creation_date",
                     new DateHistogramAggregate
                     {
-                        Buckets = dataList.GroupBy(x => x.CreationTime.ToString("yyyy-MM-dd")).Select(x => new DateHistogramBucket
-                        {
-                            KeyAsString = x.Key,
-                            DocCount = x.Count()
-                        }).ToList()
+                        Buckets = dataList.GroupBy(x => x.CreationTime.ToString("yyyy-MM-dd")).Select(x => new DateHistogramBucket(x.Count(), new DateTimeOffset(DateTime.Parse(x.Key)))).ToList()
                     }
                 }
             };
@@ -2161,13 +2156,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
             var esClient = Substitute.For<ElasticsearchClient>();
-            esClient.Search(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+            esClient.Search(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>
             {
-                AggregationDescriptors = new FluentDescriptorDictionary<string, AggregationDescriptor<TestEntity>>()
+                AggregationDescriptors = new Dictionary<string, AggregationDescriptor<TestEntity>>()
                 {
                     {
                         "group_by_creation_date",
@@ -2184,9 +2179,9 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var itemList = esWrapper.Aggregate(null, esQueryParameters);
-            esClient.Received(1).Search(Arg.Any<SearchRequestDescriptor<TestEntity>>());
+            esClient.Received(1).Search(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>());
             Assert.That(itemList, Is.Not.Null);
-            Assert.That(itemList!.Count(), Is.EqualTo(1));
+            Assert.That(itemList!.Count, Is.EqualTo(1));
 
             DateHistogramAggregate dateHistogramAggregate = (DateHistogramAggregate)itemList!["group_by_creation_date"];
             Assert.That(dateHistogramAggregate.Buckets.Count, Is.EqualTo(2));
@@ -2195,8 +2190,8 @@ namespace FluentHelper.ElasticSearch.Tests
         [Test]
         public async Task Verify_AggregationsAsync_WorksCorrectly()
         {
-            List<TestEntity> dataList = new()
-            {
+            List<TestEntity> dataList =
+            [
                 new TestEntity
                 {
                     Id = Guid.NewGuid(),
@@ -2221,7 +2216,7 @@ namespace FluentHelper.ElasticSearch.Tests
                     CreationTime = DateTime.UtcNow.Date.AddDays(-1),
                     Active = true
                 }
-            };
+            ];
 
             var elasticMap = new TestEntityMap();
 
@@ -2230,17 +2225,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
 
-            Dictionary<string, IAggregate> aggregationResponse = new Dictionary<string, IAggregate>
+            Dictionary<string, IAggregate> aggregationResponse = new()
             {
                 {
                     "group_by_creation_date",
                     new DateHistogramAggregate
                     {
-                        Buckets = dataList.GroupBy(x => x.CreationTime.ToString("yyyy-MM-dd")).Select(x => new DateHistogramBucket
-                        {
-                            KeyAsString = x.Key,
-                            DocCount = x.Count()
-                        }).ToList()
+                        Buckets = dataList.GroupBy(x => x.CreationTime.ToString("yyyy-MM-dd")).Select(x => new DateHistogramBucket(x.Count(), new DateTimeOffset(DateTime.Parse(x.Key)))).ToList()
                     }
                 }
             };
@@ -2251,13 +2242,13 @@ namespace FluentHelper.ElasticSearch.Tests
             var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
 
             var esClient = Substitute.For<ElasticsearchClient>();
-            esClient.SearchAsync(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+            esClient.SearchAsync(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>()).Returns(mockedResponse);
 
             var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
 
             var esQueryParameters = new ElasticQueryParameters<TestEntity>
             {
-                AggregationDescriptors = new FluentDescriptorDictionary<string, AggregationDescriptor<TestEntity>>()
+                AggregationDescriptors = new Dictionary<string, AggregationDescriptor<TestEntity>>()
                 {
                     {
                         "group_by_creation_date",
@@ -2274,9 +2265,9 @@ namespace FluentHelper.ElasticSearch.Tests
             };
 
             var itemList = await esWrapper.AggregateAsync(null, esQueryParameters);
-            await esClient.Received(1).SearchAsync(Arg.Any<SearchRequestDescriptor<TestEntity>>());
+            await esClient.Received(1).SearchAsync(Arg.Any<Action<SearchRequestDescriptor<TestEntity>>>());
             Assert.That(itemList, Is.Not.Null);
-            Assert.That(itemList!.Count(), Is.EqualTo(1));
+            Assert.That(itemList!.Count, Is.EqualTo(1));
 
             DateHistogramAggregate dateHistogramAggregate = (DateHistogramAggregate)itemList!["group_by_creation_date"];
             Assert.That(dateHistogramAggregate.Buckets.Count, Is.EqualTo(2));
