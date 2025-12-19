@@ -1,5 +1,7 @@
 ﻿using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Aggregations;
 using Elastic.Clients.Elasticsearch.Core.Search;
+using Elastic.Clients.Elasticsearch.Fluent;
 using Elastic.Transport;
 using FluentHelper.ElasticSearch.Common;
 using FluentHelper.ElasticSearch.IndexCalculators;
@@ -2098,6 +2100,186 @@ namespace FluentHelper.ElasticSearch.Tests
             elasticClient = esWrapper.GetOrCreateClient();
             Assert.That(elasticClient, Is.Not.Null);
             Assert.That(logActionCalls, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Verify_Aggregations_WorksCorrectly()
+        {
+            List<TestEntity> dataList = new()
+            {
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test01",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow.Date.AddDays(-2),
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test02",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow.Date.AddDays(-2),
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test03",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow.Date.AddDays(-1),
+                    Active = true
+                }
+            };
+
+            var elasticMap = new TestEntityMap();
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            Dictionary<string, IAggregate> aggregationResponse = new Dictionary<string, IAggregate>
+            {
+                {
+                    "group_by_creation_date",
+                    new DateHistogramAggregate
+                    {
+                        Buckets = dataList.GroupBy(x => x.CreationTime.ToString("yyyy-MM-dd")).Select(x => new DateHistogramBucket
+                        {
+                            KeyAsString = x.Key,
+                            DocCount = x.Count()
+                        }).ToList()
+                    }
+                }
+            };
+            var response = new SearchResponse<TestEntity>
+            {
+                Aggregations = new Elastic.Clients.Elasticsearch.Aggregations.AggregateDictionary(aggregationResponse)
+            };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.Search(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
+
+            var esQueryParameters = new ElasticQueryParameters<TestEntity>
+            {
+                AggregationDescriptors = new FluentDescriptorDictionary<string, AggregationDescriptor<TestEntity>>()
+                {
+                    {
+                        "group_by_creation_date",
+                        new AggregationDescriptor<TestEntity>()
+                            .DateHistogram(h => h
+                                .Field(f => f.CreationTime)
+                                .CalendarInterval(CalendarInterval.Day)
+                                .Format("yyyy-MM-dd")
+                                .MinDocCount(0)
+                            )
+                    }
+                },
+                QueryDescriptor = new Elastic.Clients.Elasticsearch.QueryDsl.QueryDescriptor<TestEntity>(),
+            };
+
+            var itemList = esWrapper.Aggregate(null, esQueryParameters);
+            esClient.Received(1).Search(Arg.Any<SearchRequestDescriptor<TestEntity>>());
+            Assert.That(itemList, Is.Not.Null);
+            Assert.That(itemList!.Count(), Is.EqualTo(1));
+
+            DateHistogramAggregate dateHistogramAggregate = (DateHistogramAggregate)itemList!["group_by_creation_date"];
+            Assert.That(dateHistogramAggregate.Buckets.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task Verify_AggregationsAsync_WorksCorrectly()
+        {
+            List<TestEntity> dataList = new()
+            {
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test01",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow.Date.AddDays(-2),
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test02",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow.Date.AddDays(-2),
+                    Active = true
+                },
+                new TestEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Test03",
+                    GroupName = "Group01",
+                    CreationTime = DateTime.UtcNow.Date.AddDays(-1),
+                    Active = true
+                }
+            };
+
+            var elasticMap = new TestEntityMap();
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            Dictionary<string, IAggregate> aggregationResponse = new Dictionary<string, IAggregate>
+            {
+                {
+                    "group_by_creation_date",
+                    new DateHistogramAggregate
+                    {
+                        Buckets = dataList.GroupBy(x => x.CreationTime.ToString("yyyy-MM-dd")).Select(x => new DateHistogramBucket
+                        {
+                            KeyAsString = x.Key,
+                            DocCount = x.Count()
+                        }).ToList()
+                    }
+                }
+            };
+            var response = new SearchResponse<TestEntity>
+            {
+                Aggregations = new Elastic.Clients.Elasticsearch.Aggregations.AggregateDictionary(aggregationResponse)
+            };
+            var mockedResponse = TestableResponseFactory.CreateSuccessfulResponse(response, 201);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+            esClient.SearchAsync(Arg.Any<SearchRequestDescriptor<TestEntity>>()).Returns(mockedResponse);
+
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
+
+            var esQueryParameters = new ElasticQueryParameters<TestEntity>
+            {
+                AggregationDescriptors = new FluentDescriptorDictionary<string, AggregationDescriptor<TestEntity>>()
+                {
+                    {
+                        "group_by_creation_date",
+                        new AggregationDescriptor<TestEntity>()
+                            .DateHistogram(h => h
+                                .Field(f => f.CreationTime)
+                                .CalendarInterval(CalendarInterval.Day)
+                                .Format("yyyy-MM-dd")
+                                .MinDocCount(0)
+                            )
+                    }
+                },
+                QueryDescriptor = new Elastic.Clients.Elasticsearch.QueryDsl.QueryDescriptor<TestEntity>(),
+            };
+
+            var itemList = await esWrapper.AggregateAsync(null, esQueryParameters);
+            await esClient.Received(1).SearchAsync(Arg.Any<SearchRequestDescriptor<TestEntity>>());
+            Assert.That(itemList, Is.Not.Null);
+            Assert.That(itemList!.Count(), Is.EqualTo(1));
+
+            DateHistogramAggregate dateHistogramAggregate = (DateHistogramAggregate)itemList!["group_by_creation_date"];
+            Assert.That(dateHistogramAggregate.Buckets.Count, Is.EqualTo(2));
         }
     }
 }

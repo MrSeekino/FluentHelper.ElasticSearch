@@ -1,4 +1,5 @@
 ﻿using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Aggregations;
 using FluentHelper.ElasticSearch.QueryParameters;
 using System;
 using System.Collections.Generic;
@@ -118,6 +119,25 @@ namespace FluentHelper.ElasticSearch.Interfaces
         /// <param name="cancellationToken">the token to cancel the operation</param>
         /// <returns>The number of items matching the query</returns>
         Task<long> CountAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters, CancellationToken cancellationToken = default) where TEntity : class;
+
+        /// <summary>
+        /// Apply the provided aggregations and return the dictionary of results
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        /// <param name="baseObjectFilter">the base filter to be used when using custom index calculator</param>
+        /// <param name="queryParameters">specific queryparameters for the query including at least one aggregation</param>
+        /// <param name="cancellationToken">the token to cancel the operation</param>
+        /// <returns>An instance of AggregateDictionary or null</returns>
+        AggregateDictionary? Aggregate<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class;
+        /// <summary>
+        /// Apply the provided aggregations and return the dictionary of results
+        /// </summary>
+        /// <typeparam name="TEntity">the type of data</typeparam>
+        /// <param name="baseObjectFilter">the base filter to be used when using custom index calculator</param>
+        /// <param name="queryParameters">specific queryparameters for the query including at least one aggregation</param>
+        /// <param name="cancellationToken">the token to cancel the operation</param>
+        /// <returns>An instance of AggregateDictionary or null</returns>
+        Task<AggregateDictionary?> AggregateAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters, CancellationToken cancellationToken = default) where TEntity : class;
 
         /// <summary>
         /// Delete the specified elements from the index using the mapping

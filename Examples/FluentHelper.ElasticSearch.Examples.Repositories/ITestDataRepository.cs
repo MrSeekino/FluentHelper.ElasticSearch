@@ -1,4 +1,5 @@
-﻿using FluentHelper.ElasticSearch.Examples.Models;
+﻿using Elastic.Clients.Elasticsearch.Aggregations;
+using FluentHelper.ElasticSearch.Examples.Models;
 
 namespace FluentHelper.ElasticSearch.Examples.Repositories
 {
@@ -24,5 +25,7 @@ namespace FluentHelper.ElasticSearch.Examples.Repositories
         Task<IEnumerable<TestData>> GetAllSortedByCreationDateDesc();
 
         Task<IEnumerable<TestData>> GetAllActiveFromDate(DateTime minDate);
+
+        Task<AggregateDictionary?> GetDataGroupedByDay();
     }
 }

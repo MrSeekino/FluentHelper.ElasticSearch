@@ -1,18 +1,19 @@
 ﻿using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Aggregations;
 using Elastic.Clients.Elasticsearch.Core.Search;
+using Elastic.Clients.Elasticsearch.Fluent;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace FluentHelper.ElasticSearch.QueryParameters
 {
     public sealed class ElasticQueryParametersBuilder<TEntity> where TEntity : class
     {
-        private List<Action<QueryDescriptor<TEntity>>> _queryActions = [];
         private QueryDescriptor<TEntity>? _queryDescriptor;
         private SourceFilter? _sourceFilter;
         private SortOptionsDescriptor<TEntity>? _sortOptionsDescriptor;
+        private FluentDescriptorDictionary<string, AggregationDescriptor<TEntity>> _aggregationDescriptors = [];
         private int _skip;
         private int _take;
 
@@ -24,7 +25,6 @@ namespace FluentHelper.ElasticSearch.QueryParameters
         {
             return new ElasticQueryParametersBuilder<TEntity>()
             {
-                _queryActions = [],
                 _queryDescriptor = null,
                 _sourceFilter = null,
                 _sortOptionsDescriptor = null,
@@ -138,6 +138,18 @@ namespace FluentHelper.ElasticSearch.QueryParameters
         }
 
         /// <summary>
+        /// Add an aggregation descriptor with the specified key
+        /// </summary>
+        /// <param name="aggregatorKey">The key for the aggregator</param>
+        /// <param name="aggregationDescriptor">The implementation of the aggregator descriptor</param>
+        /// <returns></returns>
+        public ElasticQueryParametersBuilder<TEntity> AddAggregation(string aggregatorKey, AggregationDescriptor<TEntity> aggregationDescriptor)
+        {
+            _aggregationDescriptors.Add(aggregatorKey, aggregationDescriptor);
+            return this;
+        }
+
+        /// <summary>
         /// Skip the selected number of result. Throws if negative
         /// </summary>
         /// <param name="skipValue">number of elements to be skipped</param>
@@ -174,6 +186,7 @@ namespace FluentHelper.ElasticSearch.QueryParameters
                 QueryDescriptor = _queryDescriptor,
                 SourceConfig = _sourceFilter != null ? new SourceConfig(_sourceFilter) : null,
                 SortOptionsDescriptor = _sortOptionsDescriptor,
+                AggregationDescriptors = _aggregationDescriptors,
                 Skip = _skip,
                 Take = _take
             };

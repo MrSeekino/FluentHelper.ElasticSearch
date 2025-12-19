@@ -1,4 +1,5 @@
-﻿using FluentHelper.ElasticSearch.Examples.Models;
+﻿using Elastic.Clients.Elasticsearch.Aggregations;
+using FluentHelper.ElasticSearch.Examples.Models;
 using FluentHelper.ElasticSearch.Examples.Repositories;
 using FluentHelper.ElasticSearch.Interfaces;
 using Microsoft.Extensions.Hosting;
@@ -7,8 +8,9 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
 {
     public class ExampleService : BackgroundService
     {
-        const bool _enablePressOnContinue = true;
         const int _indexRefreshTimeMs = 5000;
+
+        static bool _enablePressOnContinue = true;
 
         private readonly IElasticWrapper _elasticWrapper;
         private readonly ITestDataRepository _testDataRepository;
@@ -26,7 +28,7 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
             {
                 Id = Guid.NewGuid(),
                 Name = "ExampleData",
-                CreationDate = DateTime.UtcNow.AddMinutes(-14),
+                CreationDate = DateTime.UtcNow.AddHours(-51),
                 Active = true
             };
 
@@ -34,7 +36,7 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
             {
                 Id = Guid.NewGuid(),
                 Name = "SecondData",
-                CreationDate = DateTime.UtcNow.AddMinutes(2),
+                CreationDate = DateTime.UtcNow.AddMinutes(-3027),
                 Active = false
             };
 
@@ -42,7 +44,7 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
             {
                 Id = Guid.NewGuid(),
                 Name = "ThirdData",
-                CreationDate = DateTime.UtcNow.AddMinutes(-42),
+                CreationDate = DateTime.UtcNow.AddMinutes(-1721),
                 Active = true
             };
         }
@@ -53,6 +55,13 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
             {
                 try
                 {
+                    DateTime minDate = DateTime.UtcNow.Date.AddDays(-5);
+
+                    Console.WriteLine("Enable press on continue? Y/n");
+                    var key = Console.ReadLine();
+                    if (!string.IsNullOrWhiteSpace(key) && key.ToLower() == "n")
+                        _enablePressOnContinue = false;
+
                     var result = await _elasticWrapper.CreateAllMappedIndexTemplateAsync();
                     Console.WriteLine($"Template creation results: CreatedTemplates={result.CreatedTemplates}, AlreadyExistingTemplates={result.AlreadyExistingTemplates}, TotalDefinedTemplates={result.TotalDefinedTemplates}");
 
@@ -87,7 +96,6 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
                     var totalDocs = await _testDataRepository.Count();
                     Console.WriteLine($"Index contains {totalDocs} documents");
 
-                    DateTime minDate = DateTime.UtcNow.AddMinutes(-20);
                     Console.WriteLine($"Getting active document created in past 20minutes..");
                     PressToContinue();
 
@@ -123,6 +131,25 @@ namespace FluentHelper.ElasticSearch.Examples.Runner
                     var sortedList = await _testDataRepository.GetAllSortedByCreationDateDesc();
                     foreach (var item in sortedList)
                         Console.WriteLine($"item {item.Name} dated {item.CreationDate:yyyy-MM-dd HH:mm:ss}");
+
+                    Console.WriteLine($"Getting all document grouped by day..");
+                    PressToContinue();
+
+                    var groupedData = await _testDataRepository.GetDataGroupedByDay();
+                    if (groupedData != null)
+                    {
+                        Console.WriteLine($"Got {groupedData.Count()} groups");
+                        foreach (var group in groupedData)
+                        {
+                            DateHistogramAggregate? dateHistogramAggregate = group.Value as DateHistogramAggregate;
+                            Console.WriteLine($"Group '{group.Key}' contains {dateHistogramAggregate?.Buckets.Count ?? 0} data");
+                            if (dateHistogramAggregate != null)
+                                foreach (var bucket in dateHistogramAggregate.Buckets)
+                                    Console.WriteLine($"Bucket Key: {bucket.KeyAsString}, Doc Count: {bucket.DocCount}");
+                        }
+                    }
+                    else
+                        Console.WriteLine($"Could not retrieve grouped data");
 
                     Console.WriteLine($"Deleting single document with id {_exampleData.Id}..");
                     PressToContinue();

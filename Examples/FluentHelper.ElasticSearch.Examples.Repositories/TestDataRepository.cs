@@ -1,4 +1,5 @@
 ﻿using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Aggregations;
 using FluentHelper.ElasticSearch.Examples.Models;
 using FluentHelper.ElasticSearch.Interfaces;
 using FluentHelper.ElasticSearch.QueryParameters;
@@ -51,15 +52,25 @@ namespace FluentHelper.ElasticSearch.Examples.Repositories
                                     q.AddQuery(x => x.Term(m => m.Field(f => f.Active).Value(true)))
                                         .AddQuery(x => x.Range(r => r.DateRange(x => x.Field(f => f.CreationDate).Gt(minDate))));
                                 })
-                                //.Query(q =>
-                                //{
-                                //    q.Term(m => m.Field(f => f.Active).Value(true));
-                                //    q.Range(r => r.DateRange(x => x.Field(f => f.CreationDate).Gt(minDate)));
-                                //})
                                 .Sort(x => x.CreationDate, SortOrder.Desc);
 
             var qParams = qBuilder.Build();
             return await _elasticWrapper.QueryAsync(null, qParams);
+        }
+
+        public async Task<AggregateDictionary?> GetDataGroupedByDay()
+        {
+            var qBuilder = ElasticQueryParametersBuilder<TestData>.Create()
+                                .AddAggregation("group_by_day", new AggregationDescriptor<TestData>()
+                                    .DateHistogram(dh => dh
+                                    .Field(f => f.CreationDate)
+                                    .CalendarInterval(CalendarInterval.Day)
+                                    .Format("yyyy-MM-dd")
+                                    .MinDocCount(0)
+                                ));
+
+            var qParams = qBuilder.Build();
+            return await _elasticWrapper.AggregateAsync(null, qParams);
         }
 
         public async Task<TestData?> GetById(Guid id)

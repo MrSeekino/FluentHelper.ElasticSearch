@@ -6,9 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 string elasticUrl = "https://localhost:9200";
-string certSha256 = "cada384305553e4758f9f821096fd91513cea094d48826f5702b1fcb39fd8001";
+string certSha256 = "DB2514B5BD82D0331C97C85C60FCF35CDD23A45F2EFB49F19FAE76FDDFC3A271";
 string username = "elastic";
-string password = "U55Tz=xZSINciZeacUKy";
+string password = "ppY4hN+Fv28ca-O+F7tp";
 
 var builder = Host.CreateDefaultBuilder();
 
@@ -19,7 +19,8 @@ builder.ConfigureServices(services =>
     services.AddFluentElasticWrapper(esConfigBuilder =>
     {
         esConfigBuilder.WithConnectionUri(elasticUrl)
-               .WithAuthorization(certSha256, new(username, password))
+               .WithAuthorization(new(username, password))
+               .WithCertificate(certSha256)
                .WithDebugEnabled()
                //.WithOnRequestCompleted(x => Console.WriteLine($"DebugInfo: {x.DebugInformation}"))
                .WithMappingFromAssemblyOf<TestDataMap>();

@@ -1,4 +1,5 @@
 ﻿using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Aggregations;
 using Elastic.Clients.Elasticsearch.IndexManagement;
 using Elastic.Transport;
 using Elastic.Transport.Products.Elasticsearch;
@@ -354,6 +355,59 @@ namespace FluentHelper.ElasticSearch.Common
                 throw new InvalidOperationException("Could not count data", new Exception(SerializeResponse(countResponse)));
 
             return countResponse.Count;
+        }
+
+        public AggregateDictionary? Aggregate<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        {
+            var searchDescriptor = GetAggregateRequestDescriptor(baseObjectFilter, queryParameters);
+            var queryResponse = GetOrCreateClient().Search(searchDescriptor);
+            return CheckAggregateResponse(queryResponse);
+        }
+
+        public async Task<AggregateDictionary?> AggregateAsync<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters, CancellationToken cancellationToken = default) where TEntity : class
+        {
+            var searchDescriptor = GetAggregateRequestDescriptor(baseObjectFilter, queryParameters);
+            var queryResponse = await GetOrCreateClient().SearchAsync(searchDescriptor, cancellationToken).ConfigureAwait(false);
+            return CheckAggregateResponse(queryResponse);
+        }
+
+        private SearchRequestDescriptor<TEntity> GetAggregateRequestDescriptor<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        {
+            string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
+
+            var aggregateDescriptor = new SearchRequestDescriptor<TEntity>();
+            aggregateDescriptor.Index(indexNames);
+            aggregateDescriptor.IgnoreUnavailable();
+
+            if (queryParameters != null)
+            {
+                if (queryParameters.QueryDescriptor != null)
+                    aggregateDescriptor.Query(queryParameters.QueryDescriptor);
+
+                if (queryParameters.AggregationDescriptors != null)
+                {
+                    aggregateDescriptor.Size(0);
+                    aggregateDescriptor.Aggregations(x =>
+                    {
+                        foreach (var agg in queryParameters.AggregationDescriptors)
+                            x.Add(agg.Key, agg.Value);
+
+                        return x;
+                    });
+                }
+            }
+
+            return aggregateDescriptor;
+        }
+
+        private AggregateDictionary? CheckAggregateResponse<TEntity>(SearchResponse<TEntity> queryResponse)
+        {
+            AfterQueryResponse(queryResponse);
+
+            if (queryResponse == null || !queryResponse.IsValidResponse)
+                throw new InvalidOperationException("Could not get data", new Exception(SerializeResponse(queryResponse)));
+
+            return queryResponse.Aggregations;
         }
 
         public void Delete<TEntity>(TEntity inputData) where TEntity : class
