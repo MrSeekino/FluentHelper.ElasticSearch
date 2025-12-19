@@ -11,6 +11,8 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
 using System.Dynamic;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace FluentHelper.ElasticSearch.Tests
 {
@@ -140,6 +142,7 @@ namespace FluentHelper.ElasticSearch.Tests
 
             var elasticConfig = Substitute.For<IElasticConfig>();
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+            elasticConfig.SkipCertificateValidation.Returns(true);
 
             var elasticMap = Substitute.For<IElasticMap>();
             elasticMap.IdPropertyName.Returns("Id");
@@ -170,6 +173,7 @@ namespace FluentHelper.ElasticSearch.Tests
             elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
             elasticConfig.DisablePing.Returns(true);
             elasticConfig.EnableDebug.Returns(true);
+            elasticConfig.SkipCertificateValidation.Returns(false);
             elasticConfig.CertificateFingerprint.Returns("ABCDE");
             elasticConfig.BasicAuthentication.Returns(basicAuth);
             elasticConfig.RequestTimeout.Returns(TimeSpan.FromSeconds(60));
@@ -190,6 +194,53 @@ namespace FluentHelper.ElasticSearch.Tests
             Assert.That(elasticClient.GetType(), Is.EqualTo(typeof(ElasticsearchClient)));
             Assert.That(applySpecialMapCalled, Is.True);
             Assert.That(logActionCalled, Is.True);
+        }
+
+        [Test]
+        public void Verify_GetOrCreateClient_WorksProperly_WhenFullyConfigured_WithCertificateFile()
+        {
+            X509Certificate2 x509Certificate = new([]);
+
+            bool applySpecialMapCalled = false;
+            bool logActionCalled = false;
+            (string username, string password) basicAuth = new("username", "password");
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+            elasticConfig.DisablePing.Returns(true);
+            elasticConfig.EnableDebug.Returns(true);
+            elasticConfig.SkipCertificateValidation.Returns(false);
+            elasticConfig.CertificateFile.Returns(x509Certificate);
+            elasticConfig.BasicAuthentication.Returns(basicAuth);
+            elasticConfig.RequestTimeout.Returns(TimeSpan.FromSeconds(60));
+            elasticConfig.LogAction.Returns((x, y, z, k) => { logActionCalled = true; });
+
+            var elasticMap = Substitute.For<IElasticMap>();
+            elasticMap.IdPropertyName.Returns("Id");
+            elasticMap.GetMappingType().Returns(typeof(IElasticMap));
+            elasticMap.When(x => x.ApplyMapping(Arg.Any<ElasticsearchClientSettings>())).Do(x =>
+            {
+                applySpecialMapCalled = true;
+            });
+
+            var esWrapper = new ElasticWrapper(loggerFactory, elasticConfig, [elasticMap]);
+            var elasticClient = esWrapper.GetOrCreateClient();
+
+            Assert.That(elasticClient, Is.Not.Null);
+            Assert.That(elasticClient.GetType(), Is.EqualTo(typeof(ElasticsearchClient)));
+            Assert.That(applySpecialMapCalled, Is.True);
+            Assert.That(logActionCalled, Is.True);
+
+            bool certValidationResultWithNoPolicy = elasticClient.ElasticsearchClientSettings.ServerCertificateValidationCallback!(string.Empty, x509Certificate, null!, SslPolicyErrors.None);
+            Assert.That(certValidationResultWithNoPolicy, Is.True);
+
+            bool certValidationResultWithNullCert = elasticClient.ElasticsearchClientSettings.ServerCertificateValidationCallback!(string.Empty, null!, null!, SslPolicyErrors.RemoteCertificateChainErrors);
+            Assert.That(certValidationResultWithNullCert, Is.False);
+
+            bool certValidationResultWithNullChain = elasticClient.ElasticsearchClientSettings.ServerCertificateValidationCallback!(string.Empty, x509Certificate, null!, SslPolicyErrors.RemoteCertificateChainErrors);
+            Assert.That(certValidationResultWithNullCert, Is.False);
         }
 
         [Test]
@@ -2271,6 +2322,74 @@ namespace FluentHelper.ElasticSearch.Tests
 
             DateHistogramAggregate dateHistogramAggregate = (DateHistogramAggregate)itemList!["group_by_creation_date"];
             Assert.That(dateHistogramAggregate.Buckets.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Verify_BuildSearchRequestDescriptor_WorksCorrectly()
+        {
+            var elasticMap = new TestEntityMap();
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
+
+            ElasticQueryParametersBuilder<TestEntity> elasticQueryParametersBuilder = new();
+            elasticQueryParametersBuilder
+                .Query(x => x.MatchAll())
+                .SourceFilter(new SourceFilter())
+                .Sort(x => x.CreationTime, SortOrder.Asc);
+
+            SearchRequestDescriptor<TestEntity> searchDescriptor = new();
+            Assert.DoesNotThrow(() => esWrapper.BuildSearchRequestDescriptor(searchDescriptor, null, elasticQueryParametersBuilder.Build()));
+        }
+
+        [Test]
+        public void Verify_BuildCountRequestDescriptor_WorksCorrectly()
+        {
+            var elasticMap = new TestEntityMap();
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
+
+            ElasticQueryParametersBuilder<TestEntity> elasticQueryParametersBuilder = new();
+            elasticQueryParametersBuilder.Query(x => x.MatchAll());
+
+            CountRequestDescriptor<TestEntity> countDescriptor = new();
+            Assert.DoesNotThrow(() => esWrapper.BuildCountRequestDescriptor(countDescriptor, null, elasticQueryParametersBuilder.Build()));
+        }
+
+        [Test]
+        public void Verify_BuildAggregateRequestDescriptor_WorksCorrectly()
+        {
+            var elasticMap = new TestEntityMap();
+
+            var loggerFactory = Substitute.For<ILoggerFactory>();
+
+            var elasticConfig = Substitute.For<IElasticConfig>();
+            elasticConfig.ConnectionsPool.Returns([new Uri("http://localhost:9200")]);
+
+            var esClient = Substitute.For<ElasticsearchClient>();
+
+            var esWrapper = new ElasticWrapper(esClient, loggerFactory, elasticConfig, [elasticMap]);
+
+            ElasticQueryParametersBuilder<TestEntity> elasticQueryParametersBuilder = new();
+            elasticQueryParametersBuilder
+                .Query(x => x.MatchAll())
+                .AddAggregation("test_aggregation", x => x.Terms(t => t.Field(f => f.GroupName)));
+
+            SearchRequestDescriptor<TestEntity> searchDescriptor = new();
+            Assert.DoesNotThrow(() => esWrapper.BuildAggregateRequestDescriptor(searchDescriptor, null, elasticQueryParametersBuilder.Build()));
         }
     }
 }

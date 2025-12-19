@@ -50,7 +50,7 @@ namespace FluentHelper.ElasticSearch.Examples.Repositories
                                 .Query(q =>
                                 {
                                     q.AddQuery(x => x.Term(m => m.Field(f => f.Active).Value(true)))
-                                        .AddQuery(x => x.Range(r => r.DateRange(x => x.Field(f => f.CreationDate).Gt(minDate))));
+                                        .AddQuery(x => x.Range(r => r.Date(x => x.Field(f => f.CreationDate).Gt(minDate))));
                                 })
                                 .Sort(x => x.CreationDate, SortOrder.Desc);
 
@@ -61,12 +61,12 @@ namespace FluentHelper.ElasticSearch.Examples.Repositories
         public async Task<AggregateDictionary?> GetDataGroupedByDay()
         {
             var qBuilder = ElasticQueryParametersBuilder<TestData>.Create()
-                                .AddAggregation("group_by_day", new AggregationDescriptor<TestData>()
-                                    .DateHistogram(dh => dh
-                                    .Field(f => f.CreationDate)
-                                    .CalendarInterval(CalendarInterval.Day)
-                                    .Format("yyyy-MM-dd")
-                                    .MinDocCount(0)
+                                .AddAggregation("group_by_day",
+                                                x => x.DateHistogram(dh => dh
+                                                        .Field(f => f.CreationDate)
+                                                        .CalendarInterval(CalendarInterval.Day)
+                                                        .Format("yyyy-MM-dd")
+                                                        .MinDocCount(0)
                                 ));
 
             var qParams = qBuilder.Build();

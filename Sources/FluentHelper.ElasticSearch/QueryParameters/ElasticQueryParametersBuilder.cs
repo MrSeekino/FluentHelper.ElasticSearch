@@ -13,7 +13,7 @@ namespace FluentHelper.ElasticSearch.QueryParameters
         private QueryDescriptor<TEntity>? _queryDescriptor;
         private SourceFilter? _sourceFilter;
         private SortOptionsDescriptor<TEntity>? _sortOptionsDescriptor;
-        private Dictionary<string, AggregationDescriptor<TEntity>> _aggregationDescriptors = [];
+        private readonly Dictionary<string, AggregationDescriptor<TEntity>> _aggregationDescriptors = [];
         private int _skip;
         private int _take;
 
@@ -140,14 +140,18 @@ namespace FluentHelper.ElasticSearch.QueryParameters
         /// <summary>
         /// Add an aggregation descriptor with the specified key
         /// </summary>
-        /// <param name="aggregatorKey">The key for the aggregator</param>
-        /// <param name="aggregationDescriptor">The implementation of the aggregator descriptor</param>
+        /// <param name="aggregationKey">The key for the aggregation</param>
+        /// <param name="aggregationAction">Configuration to be applied to AggregationDescriptor</param>
         /// <returns></returns>
-        public ElasticQueryParametersBuilder<TEntity> AddAggregation(string aggregatorKey, AggregationDescriptor<TEntity> aggregationDescriptor)
+        public ElasticQueryParametersBuilder<TEntity> AddAggregation(string aggregationKey, Action<AggregationDescriptor<TEntity>> aggregationAction)
         {
-            _aggregationDescriptors.Add(aggregatorKey, aggregationDescriptor);
+            AggregationDescriptor<TEntity> aggregationDescriptor = new();
+            aggregationAction(aggregationDescriptor);
+
+            _aggregationDescriptors.Add(aggregationKey, aggregationDescriptor);
             return this;
         }
+
 
         /// <summary>
         /// Skip the selected number of result. Throws if negative

@@ -1,5 +1,4 @@
-﻿using Elastic.Clients.Elasticsearch.Aggregations;
-using Elastic.Clients.Elasticsearch.Core.Search;
+﻿using Elastic.Clients.Elasticsearch.Core.Search;
 using FluentHelper.ElasticSearch.QueryParameters;
 using FluentHelper.ElasticSearch.TestsSupport;
 using NUnit.Framework;
@@ -155,8 +154,8 @@ namespace FluentHelper.ElasticSearch.Tests
         public void Verify_AggregationDescriptor_IsCorrectlyApplied()
         {
             var builder = ElasticQueryParametersBuilder<TestEntity>.Create()
-                            .AddAggregation("agg1", new AggregationDescriptor<TestEntity>())
-                            .AddAggregation("agg2", new AggregationDescriptor<TestEntity>());
+                            .AddAggregation("agg1", x => { })
+                            .AddAggregation("agg2", x => { });
 
             var queryParameters = builder.Build();
             Assert.That(queryParameters.AggregationDescriptors, Is.Not.Null);

@@ -11,9 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
-using System.Net.Security;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -52,12 +50,14 @@ namespace FluentHelper.ElasticSearch.Common
             }
         }
 
-        private void Log(LogLevel logLevel, Exception? exception, string message, object?[] args)
+        private void Log(LogLevel logLevel, Exception? exception, string messageTemplate, object?[] args)
         {
             if (_elasticConfig.LogAction != null)
-                _elasticConfig.LogAction.Invoke(logLevel, exception, message, args);
+                _elasticConfig.LogAction.Invoke(logLevel, exception, messageTemplate, args);
             else
-                _logger.Log(logLevel, exception, message, args);
+#pragma warning disable CA2254
+                _logger.Log(logLevel, exception, messageTemplate, args);
+#pragma warning restore CA2254
         }
 
         internal void CreateClient()
@@ -70,32 +70,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (_elasticConfig.EnableDebug)
                 esSettings.EnableDebugMode(_elasticConfig.RequestCompleted!);
 
-            if (!_elasticConfig.SkipCertificateValidation)
-            {
-                if (_elasticConfig.CertificateFile != null)
-                {
-                    esSettings.ServerCertificateValidationCallback((message, certificate, chain, sslErrors) =>
-                    {
-                        if (sslErrors == SslPolicyErrors.None)
-                            return true;
-
-                        if (certificate == null)
-                            return false;
-
-                        if (chain == null)
-                            return false;
-
-                        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-                        chain.ChainPolicy.CustomTrustStore.Add(_elasticConfig.CertificateFile);
-
-                        return chain.Build(new X509Certificate2(certificate));
-                    });
-                }
-                else if (!string.IsNullOrWhiteSpace(_elasticConfig.CertificateFingerprint))
-                    esSettings.CertificateFingerprint(_elasticConfig.CertificateFingerprint);
-            }
-            else
-                esSettings.ServerCertificateValidationCallback(CertificateValidations.AllowAll);
+            esSettings.AddCertificateValidation(_elasticConfig);
 
             if (_elasticConfig.BasicAuthentication != null)
                 esSettings.Authentication(new BasicAuthentication(_elasticConfig.BasicAuthentication.Value.Username, _elasticConfig.BasicAuthentication.Value.Password));
@@ -111,7 +86,7 @@ namespace FluentHelper.ElasticSearch.Common
 
             _client = new ElasticsearchClient(esSettings);
 
-            Log(Microsoft.Extensions.Logging.LogLevel.Trace, null, "ElasticClient created", []);
+            Log(LogLevel.Trace, null, "ElasticClient created", []);
         }
 
         public ElasticsearchClient GetOrCreateClient()
@@ -145,7 +120,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!addResponse.IsValidResponse || (addResponse.Result != Result.Created && addResponse.Result != Result.Updated))
                 throw new InvalidOperationException("Could not add data", new Exception(SerializeResponse(addResponse)));
 
-            Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), addResponse.Index]);
+            Log(LogLevel.Information, null, "Added {inputData} to {indexName}", [inputData.ToString(), addResponse.Index]);
         }
 
         public int BulkAdd<TEntity>(IEnumerable<TEntity> inputList) where TEntity : class
@@ -220,11 +195,11 @@ namespace FluentHelper.ElasticSearch.Common
             if (!bulkResponse.IsValidResponse || bulkResponse.Errors)
             {
                 bulkResponse.TryGetOriginalException(out Exception? exception);
-                Log(Microsoft.Extensions.Logging.LogLevel.Error, exception, "Could not BulkAdd some data on index {indexName}", [indexName]);
+                Log(LogLevel.Error, exception, "Could not BulkAdd some data on index {indexName}", [indexName]);
                 return 0;
             }
 
-            Log(Microsoft.Extensions.Logging.LogLevel.Debug, null, "Added {addNumber} to {indexName}", [addNumber, indexName]);
+            Log(LogLevel.Debug, null, "Added {addNumber} to {indexName}", [addNumber, indexName]);
             return addNumber;
         }
 
@@ -267,7 +242,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!updateResponse.IsValidResponse || (updateResponse.Result != Result.Created && updateResponse.Result != Result.Updated && updateResponse.Result != Result.NoOp))
                 throw new InvalidOperationException("Could not update data", new Exception(SerializeResponse(updateResponse)));
 
-            Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), updateResponse.Index]);
+            Log(LogLevel.Information, null, "AddedOrUpdated {inputData} to {indexName}", [inputData.ToString(), updateResponse.Index]);
         }
 
         public IEnumerable<TEntity> Query<TEntity>(object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
@@ -282,7 +257,7 @@ namespace FluentHelper.ElasticSearch.Common
             return CheckSearchResponse(queryResponse);
         }
 
-        private SearchRequestDescriptor<TEntity> BuildSearchRequestDescriptor<TEntity>(SearchRequestDescriptor<TEntity> searchDescriptor, object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        internal void BuildSearchRequestDescriptor<TEntity>(SearchRequestDescriptor<TEntity> searchDescriptor, object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
@@ -302,8 +277,6 @@ namespace FluentHelper.ElasticSearch.Common
 
                 searchDescriptor.From(queryParameters.Skip).Size(queryParameters.Take);
             }
-
-            return searchDescriptor;
         }
 
         private IReadOnlyCollection<TEntity> CheckSearchResponse<TEntity>(SearchResponse<TEntity> queryResponse)
@@ -328,7 +301,7 @@ namespace FluentHelper.ElasticSearch.Common
             return CheckCountResponse(countResponse);
         }
 
-        private CountRequestDescriptor<TEntity> BuildCountRequestDescriptor<TEntity>(CountRequestDescriptor<TEntity> countDescriptor, object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        internal void BuildCountRequestDescriptor<TEntity>(CountRequestDescriptor<TEntity> countDescriptor, object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
@@ -337,8 +310,6 @@ namespace FluentHelper.ElasticSearch.Common
 
             if (queryParameters != null && queryParameters.QueryDescriptor != null)
                 countDescriptor.Query(queryParameters.QueryDescriptor);
-
-            return countDescriptor;
         }
 
         private long CheckCountResponse(CountResponse countResponse)
@@ -363,7 +334,7 @@ namespace FluentHelper.ElasticSearch.Common
             return CheckAggregateResponse(queryResponse);
         }
 
-        private SearchRequestDescriptor<TEntity> BuildAggregateRequestDescriptor<TEntity>(SearchRequestDescriptor<TEntity> aggregateDescriptor, object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
+        internal void BuildAggregateRequestDescriptor<TEntity>(SearchRequestDescriptor<TEntity> aggregateDescriptor, object? baseObjectFilter, IElasticQueryParameters<TEntity>? queryParameters) where TEntity : class
         {
             string indexNames = GetIndexNamesForQueries<TEntity>(baseObjectFilter);
 
@@ -385,8 +356,6 @@ namespace FluentHelper.ElasticSearch.Common
                     });
                 }
             }
-
-            return aggregateDescriptor;
         }
 
         private AggregateDictionary? CheckAggregateResponse<TEntity>(SearchResponse<TEntity> queryResponse)
@@ -420,7 +389,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!deleteResponse.IsValidResponse || deleteResponse.Result != Result.Deleted)
                 throw new InvalidOperationException("Could not delete data", new Exception(SerializeResponse(deleteResponse)));
 
-            Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), deleteResponse.Index]);
+            Log(LogLevel.Information, null, "Deleted {inputData} from {indexName}", [inputData.ToString(), deleteResponse.Index]);
         }
 
         public bool Exists<TEntity>(TEntity inputData) where TEntity : class
@@ -552,7 +521,7 @@ namespace FluentHelper.ElasticSearch.Common
             return false;
         }
 
-        private CreateIndexRequestDescriptor BuildCreateIndexRequestParameters<TEntity>(CreateIndexRequestDescriptor createIndexRequestDescriptor) where TEntity : class
+        private void BuildCreateIndexRequestParameters<TEntity>(CreateIndexRequestDescriptor createIndexRequestDescriptor) where TEntity : class
         {
             var mapInstance = _entityMappingList[typeof(TEntity)];
 
@@ -564,8 +533,6 @@ namespace FluentHelper.ElasticSearch.Common
                 if (mapInstance.IndexSettings != null)
                     createIndexRequestDescriptor.Settings(mapInstance.IndexSettings);
             }
-
-            return createIndexRequestDescriptor;
         }
 
         private bool CheckIndexExistsResponse(Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse existsReponse)
@@ -582,7 +549,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!createIndexReponse.IsValidResponse)
                 throw new InvalidOperationException($"Could not create index {createIndexReponse.Index} for {typeof(TEntity).Name}", new Exception(SerializeResponse(createIndexReponse)));
 
-            Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "Index {indexName} created", [createIndexReponse.Index]);
+            Log(LogLevel.Information, null, "Index {indexName} created", [createIndexReponse.Index]);
         }
 
         public (int CreatedTemplates, int AlreadyExistingTemplates, int FailedTemplates, int TotalDefinedTemplates) CreateAllMappedIndexTemplate()
@@ -703,7 +670,7 @@ namespace FluentHelper.ElasticSearch.Common
             return new(templateName, indexPatterns);
         }
 
-        private static PutIndexTemplateRequestDescriptor BuildIndexTemplateRequest(PutIndexTemplateRequestDescriptor requestDescriptor, string indexPatterns, IElasticMap mapInstance)
+        private static void BuildIndexTemplateRequest(PutIndexTemplateRequestDescriptor requestDescriptor, string indexPatterns, IElasticMap mapInstance)
         {
             requestDescriptor.IndexPatterns(indexPatterns);
 
@@ -715,8 +682,6 @@ namespace FluentHelper.ElasticSearch.Common
                 if (mapInstance.IndexSettings != null)
                     t.Settings(mapInstance.IndexSettings);
             });
-
-            return requestDescriptor;
         }
 
         private bool CheckIndexTemplateExistsResponse(ExistsIndexTemplateResponse existsReponse)
@@ -733,7 +698,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (!putTemplateResponse.IsValidResponse)
                 throw new InvalidOperationException($"Could not create template {templateName} for {mapInstance.GetMappingType().Name} with patterns {indexPatterns}", new Exception(SerializeResponse(putTemplateResponse)));
 
-            Log(Microsoft.Extensions.Logging.LogLevel.Information, null, "Template {templateName} created", [templateName]);
+            Log(LogLevel.Information, null, "Template {templateName} created", [templateName]);
         }
 
         public HealthReportResponse GetHealthReport(bool verbose = false, int size = 1000)
@@ -759,11 +724,11 @@ namespace FluentHelper.ElasticSearch.Common
                 if (!queryResponse.TryGetOriginalException(out var originalException))
                     originalException = null;
 
-                Log(Microsoft.Extensions.Logging.LogLevel.Error, originalException, queryResponse!.DebugInformation, []);
+                Log(LogLevel.Error, originalException, queryResponse!.DebugInformation, []);
                 return;
             }
 
-            Log(Microsoft.Extensions.Logging.LogLevel.Debug, null, queryResponse!.DebugInformation, []);
+            Log(LogLevel.Debug, null, queryResponse!.DebugInformation, []);
         }
 
         private static string SerializeResponse<T>(T response)

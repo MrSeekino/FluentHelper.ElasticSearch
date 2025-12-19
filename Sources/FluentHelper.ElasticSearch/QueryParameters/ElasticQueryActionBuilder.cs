@@ -6,7 +6,7 @@ namespace FluentHelper.ElasticSearch.QueryParameters
 {
     public sealed class ElasticQueryActionBuilder<TEntity> where TEntity : class
     {
-        private List<Action<QueryDescriptor<TEntity>>> _queryActions = [];
+        private readonly List<Action<QueryDescriptor<TEntity>>> _queryActions = [];
 
         public ElasticQueryActionBuilder<TEntity> AddQuery(Action<QueryDescriptor<TEntity>> queryAction)
         {
