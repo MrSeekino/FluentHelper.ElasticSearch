@@ -70,7 +70,7 @@ namespace FluentHelper.ElasticSearch.Common
             if (_elasticConfig.EnableDebug)
                 esSettings.EnableDebugMode(_elasticConfig.RequestCompleted!);
 
-            esSettings.AddCertificateValidation(_elasticConfig);
+            esSettings.AddCertificateVerifications(_elasticConfig);
 
             if (_elasticConfig.BasicAuthentication != null)
                 esSettings.Authentication(new BasicAuthentication(_elasticConfig.BasicAuthentication.Value.Username, _elasticConfig.BasicAuthentication.Value.Password));

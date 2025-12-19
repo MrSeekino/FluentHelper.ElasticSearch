@@ -13,34 +13,44 @@ namespace FluentHelper.ElasticSearch.Common
 {
     internal static class Extensions
     {
-        public static ElasticsearchClientSettings AddCertificateValidation(this ElasticsearchClientSettings esSettings, IElasticConfig elasticConfig)
+        public static ElasticsearchClientSettings AddCertificateVerifications(this ElasticsearchClientSettings esSettings, IElasticConfig elasticConfig)
         {
-            if (!elasticConfig.SkipCertificateValidation)
+            if (elasticConfig.SkipCertificateValidation)
             {
-                if (elasticConfig.CertificateFile != null)
-                {
-                    esSettings.ServerCertificateValidationCallback((message, certificate, chain, sslErrors) =>
-                    {
-                        if (sslErrors == SslPolicyErrors.None)
-                            return true;
-
-                        if (certificate == null)
-                            return false;
-
-                        if (chain == null)
-                            return false;
-
-                        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-                        chain.ChainPolicy.CustomTrustStore.Add(elasticConfig.CertificateFile);
-
-                        return chain.Build(new X509Certificate2(certificate));
-                    });
-                }
-                else if (!string.IsNullOrWhiteSpace(elasticConfig.CertificateFingerprint))
-                    esSettings.CertificateFingerprint(elasticConfig.CertificateFingerprint);
-            }
-            else
                 esSettings.ServerCertificateValidationCallback(CertificateValidations.AllowAll);
+                return esSettings;
+            }
+
+            if (!string.IsNullOrWhiteSpace(elasticConfig.CertificateFingerprint))
+            {
+                esSettings.CertificateFingerprint(elasticConfig.CertificateFingerprint);
+                return esSettings;
+            }
+
+            return AddCertificateFileValidation(esSettings, elasticConfig);
+        }
+
+        private static ElasticsearchClientSettings AddCertificateFileValidation(this ElasticsearchClientSettings esSettings, IElasticConfig elasticConfig)
+        {
+            if (elasticConfig.CertificateFile != null)
+            {
+                esSettings.ServerCertificateValidationCallback((message, certificate, chain, sslErrors) =>
+                {
+                    if (sslErrors == SslPolicyErrors.None)
+                        return true;
+
+                    if (certificate == null)
+                        return false;
+
+                    if (chain == null)
+                        return false;
+
+                    chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+                    chain.ChainPolicy.CustomTrustStore.Add(certificate);
+
+                    return chain.Build(new X509Certificate2(certificate));
+                });
+            }
 
             return esSettings;
         }
