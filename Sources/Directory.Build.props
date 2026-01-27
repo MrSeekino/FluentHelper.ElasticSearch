@@ -2,6 +2,8 @@
 	<PropertyGroup>
 		<Company>Andrea Pittaluga</Company>
 		<Authors>Andrea Pittaluga</Authors>
-		<Copyright>Copyright © 2023 Andrea Pittaluga</Copyright>
+		<Copyright>Copyright © 2026 Andrea Pittaluga</Copyright>
+		<FileVersion>8.4.1</FileVersion>
+		<Version>8.4.1</Version>
 	</PropertyGroup>
 </Project>
